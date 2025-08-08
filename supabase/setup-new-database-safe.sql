@@ -1,0 +1,441 @@
+-- =====================================================
+-- Real Estate Hotspot - Safe Database Setup
+-- =====================================================
+-- This version uses IF NOT EXISTS and DROP IF EXISTS to handle existing objects
+-- Run this script in your new Supabase project's SQL Editor
+
+-- Create custom types (only if they don't exist)
+DO $$ BEGIN
+    CREATE TYPE property_type AS ENUM ('apartment', 'house', 'duplex', 'penthouse', 'land', 'commercial', 'office');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE property_status AS ENUM ('for_sale', 'for_rent', 'sold', 'rented', 'off_market');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE listing_type AS ENUM ('sale', 'rent');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE verification_status AS ENUM ('pending', 'verified', 'rejected');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE account_type AS ENUM ('buyer', 'seller', 'agent', 'admin', 'owner', 'renter');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- =====================================================
+-- USER PROFILES TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  full_name TEXT,
+  email TEXT,
+  phone TEXT,
+  avatar_url TEXT,
+  account_type account_type DEFAULT 'buyer',
+  bio TEXT,
+  location TEXT,
+  preferences JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- =====================================================
+-- REAL ESTATE AGENTS TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS real_estate_agents (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  agency_name TEXT,
+  license_number TEXT,
+  phone TEXT,
+  bio TEXT,
+  profile_image_url TEXT,
+  verification_status verification_status DEFAULT 'pending',
+  rating DECIMAL(2,1) DEFAULT 0.0,
+  total_reviews INTEGER DEFAULT 0,
+  years_experience INTEGER,
+  specializations TEXT[],
+  social_media JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- =====================================================
+-- PROPERTIES TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS properties (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  property_type property_type NOT NULL,
+  listing_type listing_type NOT NULL,
+  status property_status DEFAULT 'for_sale',
+  price DECIMAL(15,2) NOT NULL,
+  bedrooms INTEGER,
+  bathrooms INTEGER,
+  area_sqm DECIMAL(10,2),
+  address TEXT NOT NULL,
+  city TEXT NOT NULL,
+  state TEXT NOT NULL,
+  country TEXT DEFAULT 'Nigeria',
+  latitude DECIMAL(10,8),
+  longitude DECIMAL(11,8),
+  agent_id UUID REFERENCES real_estate_agents(id),
+  owner_id UUID REFERENCES auth.users(id),
+  featured BOOLEAN DEFAULT false,
+  verified BOOLEAN DEFAULT false,
+  images TEXT[] DEFAULT '{}',
+  amenities TEXT[] DEFAULT '{}',
+  year_built INTEGER,
+  parking_spaces INTEGER,
+  furnishing_status TEXT,
+  property_documents JSONB DEFAULT '{}',
+  virtual_tour_url TEXT,
+  views_count INTEGER DEFAULT 0,
+  seo_slug TEXT,
+  meta_description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- =====================================================
+-- PROPERTY FAVORITES TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS property_favorites (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  property_id UUID REFERENCES properties(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  UNIQUE(user_id, property_id)
+);
+
+-- =====================================================
+-- PROPERTY INQUIRIES TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS property_inquiries (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  property_id UUID REFERENCES properties(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  agent_id UUID REFERENCES real_estate_agents(id) ON DELETE CASCADE,
+  message TEXT NOT NULL,
+  phone TEXT,
+  email TEXT,
+  preferred_contact_method TEXT DEFAULT 'email',
+  status TEXT DEFAULT 'pending',
+  response TEXT,
+  inquiry_type TEXT DEFAULT 'general',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- =====================================================
+-- PROPERTY REVIEWS TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS property_reviews (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  property_id UUID REFERENCES properties(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+  review_text TEXT,
+  helpful_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- =====================================================
+-- AGENT REVIEWS TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS agent_reviews (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  agent_id UUID REFERENCES real_estate_agents(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  property_id UUID REFERENCES properties(id) ON DELETE CASCADE,
+  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+  review_text TEXT,
+  helpful_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- =====================================================
+-- PROPERTY VIEWINGS TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS property_viewings (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  property_id UUID REFERENCES properties(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  agent_id UUID REFERENCES real_estate_agents(id) ON DELETE CASCADE,
+  scheduled_date TIMESTAMP WITH TIME ZONE NOT NULL,
+  status TEXT DEFAULT 'scheduled',
+  notes TEXT,
+  viewing_type TEXT DEFAULT 'physical', -- physical, virtual
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- =====================================================
+-- SEARCH HISTORY TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS search_history (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  search_query TEXT,
+  filters JSONB DEFAULT '{}',
+  results_count INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- =====================================================
+-- NOTIFICATIONS TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT DEFAULT 'info', -- info, success, warning, error
+  read BOOLEAN DEFAULT false,
+  action_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- =====================================================
+-- SAVED SEARCHES TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS saved_searches (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  search_criteria JSONB NOT NULL,
+  email_alerts BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- =====================================================
+-- ENABLE ROW LEVEL SECURITY
+-- =====================================================
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE real_estate_agents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
+ALTER TABLE property_favorites ENABLE ROW LEVEL SECURITY;
+ALTER TABLE property_inquiries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE property_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE property_viewings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE search_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE saved_searches ENABLE ROW LEVEL SECURITY;
+
+-- =====================================================
+-- DROP EXISTING POLICIES (IF ANY) AND RECREATE
+-- =====================================================
+
+-- User Profiles Policies
+DROP POLICY IF EXISTS "Users can view their own profile" ON user_profiles;
+DROP POLICY IF EXISTS "Users can create their own profile" ON user_profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON user_profiles;
+
+CREATE POLICY "Users can view their own profile" ON user_profiles FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own profile" ON user_profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own profile" ON user_profiles FOR UPDATE USING (auth.uid() = user_id);
+
+-- Properties Policies
+DROP POLICY IF EXISTS "Properties are viewable by everyone" ON properties;
+DROP POLICY IF EXISTS "Agents can insert their own properties" ON properties;
+DROP POLICY IF EXISTS "Agents can update their own properties" ON properties;
+
+CREATE POLICY "Properties are viewable by everyone" ON properties FOR SELECT USING (true);
+CREATE POLICY "Agents can insert their own properties" ON properties FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM real_estate_agents WHERE id = agent_id AND user_id = auth.uid())
+  OR auth.uid() = owner_id
+);
+CREATE POLICY "Agents can update their own properties" ON properties FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM real_estate_agents WHERE id = agent_id AND user_id = auth.uid())
+  OR auth.uid() = owner_id
+);
+
+-- Agents Policies
+DROP POLICY IF EXISTS "Agents are viewable by everyone" ON real_estate_agents;
+DROP POLICY IF EXISTS "Users can create their own agent profile" ON real_estate_agents;
+DROP POLICY IF EXISTS "Users can update their own agent profile" ON real_estate_agents;
+
+CREATE POLICY "Agents are viewable by everyone" ON real_estate_agents FOR SELECT USING (true);
+CREATE POLICY "Users can create their own agent profile" ON real_estate_agents FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own agent profile" ON real_estate_agents FOR UPDATE USING (auth.uid() = user_id);
+
+-- Favorites Policies
+DROP POLICY IF EXISTS "Users can view their own favorites" ON property_favorites;
+DROP POLICY IF EXISTS "Users can create their own favorites" ON property_favorites;
+DROP POLICY IF EXISTS "Users can delete their own favorites" ON property_favorites;
+
+CREATE POLICY "Users can view their own favorites" ON property_favorites FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own favorites" ON property_favorites FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own favorites" ON property_favorites FOR DELETE USING (auth.uid() = user_id);
+
+-- Inquiries Policies
+DROP POLICY IF EXISTS "Users can view their own inquiries" ON property_inquiries;
+DROP POLICY IF EXISTS "Agents can view inquiries for their properties" ON property_inquiries;
+DROP POLICY IF EXISTS "Authenticated users can create inquiries" ON property_inquiries;
+
+CREATE POLICY "Users can view their own inquiries" ON property_inquiries FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Agents can view inquiries for their properties" ON property_inquiries FOR SELECT USING (
+  EXISTS (SELECT 1 FROM real_estate_agents WHERE id = agent_id AND user_id = auth.uid())
+);
+CREATE POLICY "Authenticated users can create inquiries" ON property_inquiries FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Reviews Policies
+DROP POLICY IF EXISTS "Reviews are viewable by everyone" ON property_reviews;
+DROP POLICY IF EXISTS "Reviews are viewable by everyone" ON agent_reviews;
+DROP POLICY IF EXISTS "Users can create their own reviews" ON property_reviews;
+DROP POLICY IF EXISTS "Users can create their own reviews" ON agent_reviews;
+
+CREATE POLICY "Reviews are viewable by everyone" ON property_reviews FOR SELECT USING (true);
+CREATE POLICY "Reviews are viewable by everyone" ON agent_reviews FOR SELECT USING (true);
+CREATE POLICY "Users can create their own reviews" ON property_reviews FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can create their own reviews" ON agent_reviews FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Viewings Policies
+DROP POLICY IF EXISTS "Users can view their own viewings" ON property_viewings;
+DROP POLICY IF EXISTS "Agents can view viewings for their properties" ON property_viewings;
+DROP POLICY IF EXISTS "Users can create viewings" ON property_viewings;
+
+CREATE POLICY "Users can view their own viewings" ON property_viewings FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Agents can view viewings for their properties" ON property_viewings FOR SELECT USING (
+  EXISTS (SELECT 1 FROM real_estate_agents WHERE id = agent_id AND user_id = auth.uid())
+);
+CREATE POLICY "Users can create viewings" ON property_viewings FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Search History Policies
+DROP POLICY IF EXISTS "Users can view their own search history" ON search_history;
+DROP POLICY IF EXISTS "Users can create their own search history" ON search_history;
+
+CREATE POLICY "Users can view their own search history" ON search_history FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own search history" ON search_history FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Notifications Policies
+DROP POLICY IF EXISTS "Users can view their own notifications" ON notifications;
+DROP POLICY IF EXISTS "Users can update their own notifications" ON notifications;
+
+CREATE POLICY "Users can view their own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can update their own notifications" ON notifications FOR UPDATE USING (auth.uid() = user_id);
+
+-- Saved Searches Policies
+DROP POLICY IF EXISTS "Users can manage their own saved searches" ON saved_searches;
+CREATE POLICY "Users can manage their own saved searches" ON saved_searches FOR ALL USING (auth.uid() = user_id);
+
+-- =====================================================
+-- CREATE INDEXES FOR PERFORMANCE
+-- =====================================================
+CREATE INDEX IF NOT EXISTS idx_properties_city ON properties(city);
+CREATE INDEX IF NOT EXISTS idx_properties_state ON properties(state);
+CREATE INDEX IF NOT EXISTS idx_properties_property_type ON properties(property_type);
+CREATE INDEX IF NOT EXISTS idx_properties_listing_type ON properties(listing_type);
+CREATE INDEX IF NOT EXISTS idx_properties_status ON properties(status);
+CREATE INDEX IF NOT EXISTS idx_properties_price ON properties(price);
+CREATE INDEX IF NOT EXISTS idx_properties_featured ON properties(featured);
+CREATE INDEX IF NOT EXISTS idx_properties_agent_id ON properties(agent_id);
+CREATE INDEX IF NOT EXISTS idx_properties_location ON properties(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_property_favorites_user_id ON property_favorites(user_id);
+CREATE INDEX IF NOT EXISTS idx_property_inquiries_property_id ON property_inquiries(property_id);
+CREATE INDEX IF NOT EXISTS idx_property_inquiries_agent_id ON property_inquiries(agent_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
+
+-- =====================================================
+-- CREATE FUNCTIONS AND TRIGGERS
+-- =====================================================
+
+-- Function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Drop existing triggers if they exist
+DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON user_profiles;
+DROP TRIGGER IF EXISTS update_real_estate_agents_updated_at ON real_estate_agents;
+DROP TRIGGER IF EXISTS update_properties_updated_at ON properties;
+DROP TRIGGER IF EXISTS update_property_inquiries_updated_at ON property_inquiries;
+DROP TRIGGER IF EXISTS update_property_viewings_updated_at ON property_viewings;
+DROP TRIGGER IF EXISTS update_saved_searches_updated_at ON saved_searches;
+
+-- Create triggers for updated_at
+CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON user_profiles FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_real_estate_agents_updated_at BEFORE UPDATE ON real_estate_agents FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_properties_updated_at BEFORE UPDATE ON properties FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_property_inquiries_updated_at BEFORE UPDATE ON property_inquiries FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_property_viewings_updated_at BEFORE UPDATE ON property_viewings FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_saved_searches_updated_at BEFORE UPDATE ON saved_searches FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- Function to automatically create user profile on signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.user_profiles (user_id, full_name, email)
+  VALUES (new.id, new.raw_user_meta_data->>'full_name', new.email);
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Drop existing trigger if it exists and recreate
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- =====================================================
+-- INSERT SAMPLE DATA (ONLY IF TABLES ARE EMPTY)
+-- =====================================================
+
+-- Insert sample agents (only if table is empty)
+INSERT INTO real_estate_agents (id, agency_name, license_number, phone, bio, verification_status, rating, total_reviews, years_experience, specializations)
+SELECT * FROM (VALUES
+  ('550e8400-e29b-41d4-a716-446655440001', 'Lagos Premium Properties', 'LPP2024001', '+234-803-123-4567', 'Experienced real estate agent specializing in luxury properties in Lagos with over 8 years of experience.', 'verified', 4.8, 127, 8, ARRAY['Luxury Properties', 'Residential', 'Investment']),
+  ('550e8400-e29b-41d4-a716-446655440002', 'Abuja Elite Realty', 'AER2024002', '+234-806-987-6543', 'Expert in commercial and residential properties in Abuja. Committed to finding the perfect property for every client.', 'verified', 4.6, 89, 6, ARRAY['Commercial', 'Residential', 'Land']),
+  ('550e8400-e29b-41d4-a716-446655440003', 'West Coast Properties', 'WCP2024003', '+234-809-555-1234', 'Specialist in waterfront and luxury properties across Lagos and Ogun states.', 'verified', 4.9, 156, 12, ARRAY['Waterfront', 'Luxury', 'Investment']),
+  ('550e8400-e29b-41d4-a716-446655440004', 'Northern Gate Realty', 'NGR2024004', '+234-812-777-8888', 'Focused on affordable housing and investment properties in Kano and surrounding areas.', 'verified', 4.5, 73, 5, ARRAY['Affordable Housing', 'Investment', 'Land'])
+) AS v(id, agency_name, license_number, phone, bio, verification_status, rating, total_reviews, years_experience, specializations)
+WHERE NOT EXISTS (SELECT 1 FROM real_estate_agents LIMIT 1);
+
+-- Insert sample properties (only if table is empty)
+INSERT INTO properties (id, title, description, property_type, listing_type, status, price, bedrooms, bathrooms, area_sqm, address, city, state, agent_id, featured, verified, images, amenities, year_built, parking_spaces, furnishing_status, seo_slug)
+SELECT * FROM (VALUES
+  ('660e8400-e29b-41d4-a716-446655440001', 'Luxury 3-Bedroom Apartment in Victoria Island', 'Stunning modern apartment with panoramic views of Lagos lagoon. Features high-end finishes, smart home technology, and access to premium amenities including gym, pool, and 24/7 security.', 'apartment', 'sale', 'for_sale', 45000000.00, 3, 2, 150.00, '15 Ahmadu Bello Way, Victoria Island', 'Lagos', 'Lagos', '550e8400-e29b-41d4-a716-446655440001', true, true, ARRAY['/placeholder.svg', '/placeholder.svg', '/placeholder.svg'], ARRAY['Swimming Pool', 'Gym', '24/7 Security', 'Generator', 'Elevator', 'Parking'], 2022, 2, 'Fully Furnished', 'luxury-3-bedroom-apartment-victoria-island'),
+  ('660e8400-e29b-41d4-a716-446655440002', 'Modern 4-Bedroom Duplex in Lekki Phase 1', 'Beautifully designed duplex in a serene and secure estate. Perfect for families with spacious rooms, modern kitchen, and landscaped garden. Close to schools, shopping centers, and recreational facilities.', 'duplex', 'sale', 'for_sale', 75000000.00, 4, 3, 250.00, '45 Admiralty Way, Lekki Phase 1', 'Lagos', 'Lagos', '550e8400-e29b-41d4-a716-446655440001', true, true, ARRAY['/placeholder.svg', '/placeholder.svg', '/placeholder.svg'], ARRAY['Garden', 'Security', 'Generator', 'Parking', 'Balcony', 'Storage Room'], 2021, 3, 'Semi Furnished', 'modern-4-bedroom-duplex-lekki-phase-1'),
+  ('660e8400-e29b-41d4-a716-446655440003', 'Spacious 2-Bedroom Flat in Ikeja GRA', 'Well-maintained apartment in one of Lagos premier residential areas. Features include spacious living areas, fitted kitchen, and access to estate facilities. Ideal for young professionals and small families.', 'apartment', 'sale', 'for_sale', 25000000.00, 2, 2, 120.00, '28 Obafemi Awolowo Way, Ikeja GRA', 'Lagos', 'Lagos', '550e8400-e29b-41d4-a716-446655440002', false, true, ARRAY['/placeholder.svg', '/placeholder.svg'], ARRAY['Security', 'Generator', 'Parking', 'Water Treatment'], 2020, 1, 'Unfurnished', 'spacious-2-bedroom-flat-ikeja-gra'),
+  ('660e8400-e29b-41d4-a716-446655440004', 'Executive 5-Bedroom Mansion in Banana Island', 'Ultra-luxury mansion on exclusive Banana Island. Features include private beach access, infinity pool, home theater, wine cellar, and staff quarters. The epitome of luxury living in Lagos.', 'house', 'sale', 'for_sale', 250000000.00, 5, 4, 400.00, '12 Ocean Parade Close, Banana Island', 'Lagos', 'Lagos', '550e8400-e29b-41d4-a716-446655440003', true, true, ARRAY['/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg'], ARRAY['Private Beach', 'Infinity Pool', 'Home Theater', 'Wine Cellar', 'Staff Quarters', 'Private Jetty', 'Security', 'Generator'], 2023, 4, 'Fully Furnished', 'executive-5-bedroom-mansion-banana-island'),
+  ('660e8400-e29b-41d4-a716-446655440005', 'Contemporary 3-Bedroom Penthouse in Ikoyi', 'Exclusive penthouse with 360-degree views of Lagos. Features floor-to-ceiling windows, marble finishes, private elevator access, and rooftop terrace. Located in the heart of Ikoyi with easy access to business district.', 'penthouse', 'sale', 'for_sale', 85000000.00, 3, 3, 200.00, '7 Kingsway Road, Ikoyi', 'Lagos', 'Lagos', '550e8400-e29b-41d4-a716-446655440001', true, true, ARRAY['/placeholder.svg', '/placeholder.svg', '/placeholder.svg'], ARRAY['Private Elevator', 'Rooftop Terrace', 'Marble Finishes', 'Central AC', 'Security', 'Parking'], 2022, 2, 'Luxury Furnished', 'contemporary-3-bedroom-penthouse-ikoyi'),
+  ('660e8400-e29b-41d4-a716-446655440006', 'Elegant 4-Bedroom Terrace in Abuja', 'Modern terrace house in upscale Abuja neighborhood. Features contemporary design, landscaped compound, and proximity to international schools and shopping centers. Perfect for expatriate families.', 'house', 'sale', 'for_sale', 55000000.00, 4, 3, 180.00, '15 Diplomatic Drive, Katampe Extension', 'Abuja', 'FCT', '550e8400-e29b-41d4-a716-446655440002', false, true, ARRAY['/placeholder.svg', '/placeholder.svg'], ARRAY['Landscaped Garden', 'Security', 'Generator', 'Parking', 'Study Room'], 2021, 2, 'Semi Furnished', 'elegant-4-bedroom-terrace-abuja'),
+  ('660e8400-e29b-41d4-a716-446655440007', 'Affordable 3-Bedroom Bungalow in Kano', 'Comfortable family home in peaceful residential area. Features include spacious compound, modern fittings, and reliable infrastructure. Great value for money and perfect for first-time buyers.', 'house', 'sale', 'for_sale', 18000000.00, 3, 2, 140.00, '22 Zaria Road, Fagge', 'Kano', 'Kano', '550e8400-e29b-41d4-a716-446655440004', false, true, ARRAY['/placeholder.svg'], ARRAY['Compound', 'Security', 'Borehole', 'Parking'], 2019, 2, 'Unfurnished', 'affordable-3-bedroom-bungalow-kano'),
+  ('660e8400-e29b-41d4-a716-446655440008', 'Luxury 2-Bedroom Apartment for Rent in VI', 'Premium apartment available for rent in Victoria Island. Fully furnished with modern appliances, gym access, swimming pool, and concierge services. Ideal for executives and expatriates.', 'apartment', 'rent', 'for_rent', 2500000.00, 2, 2, 110.00, '8 Tiamiyu Savage Street, Victoria Island', 'Lagos', 'Lagos', '550e8400-e29b-41d4-a716-446655440001', true, true, ARRAY['/placeholder.svg', '/placeholder.svg'], ARRAY['Fully Furnished', 'Swimming Pool', 'Gym', 'Concierge', '24/7 Security', 'Generator'], 2023, 1, 'Fully Furnished', 'luxury-2-bedroom-apartment-rent-vi')
+) AS v(id, title, description, property_type, listing_type, status, price, bedrooms, bathrooms, area_sqm, address, city, state, agent_id, featured, verified, images, amenities, year_built, parking_spaces, furnishing_status, seo_slug)
+WHERE NOT EXISTS (SELECT 1 FROM properties LIMIT 1);
+
+-- =====================================================
+-- SETUP COMPLETE!
+-- =====================================================
+-- Your database is now ready with:
+-- ✅ All tables created (safe mode - won't fail if they exist)
+-- ✅ Row Level Security enabled
+-- ✅ Indexes for performance
+-- ✅ Sample data inserted (only if tables were empty)
+-- ✅ Triggers and functions set up (existing ones replaced)
+-- ✅ Policies recreated (existing ones replaced)
+-- 
+-- This script is safe to run multiple times!
