@@ -1,157 +1,51 @@
 # Netlify deployment configuration for Real Estate Hotspot
 
 [build]
-  # Build command
   command = "npm run build"
-  
-  # Directory to publish
   publish = "dist"
-  
-  # Environment variables for all deployments
-  environment = { NODE_ENV = "production" }
 
-[build.processing]
-  skip_processing = false
-
-[build.processing.css]
-  bundle = true
-  minify = true
-
-[build.processing.js]
-  bundle = true
-  minify = true
-
-[build.processing.html]
-  pretty_urls = true
-
-[build.processing.images]
-  compress = true
+[build.environment]
+  NODE_VERSION = "18"
 
 # Production deployment settings
 [context.production]
-  command = "node scripts/deploy-config.js && npm run build"
-  environment = { 
-    NODE_ENV = "production",
-    VITE_BUILD_TARGET = "production"
-  }
-
-# Staging deployment settings  
-[context.branch-deploy]
-  command = "node scripts/deploy-config.js && npm run build"
-  environment = { 
-    NODE_ENV = "production",
-    VITE_BUILD_TARGET = "staging"
-  }
+  command = "npm run build"
 
 # Preview deployments
 [context.deploy-preview]
   command = "npm run build"
-  environment = { 
-    NODE_ENV = "production",
-    VITE_BUILD_TARGET = "staging"
-  }
+
+# Branch deployments
+[context.branch-deploy]
+  command = "npm run build"
 
 # Headers for security and performance
 [[headers]]
   for = "/*"
   [headers.values]
-    # Enhanced Security headers
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=(self), payment=(self)"
-    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
-
-    # Content Security Policy
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.google-analytics.com https://js.paystack.co https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://api.paystack.co https://*.supabase.co https://api.mapbox.com https://www.google-analytics.com; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;"
-
-    # Cache control for HTML files
     Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
   for = "/assets/*"
   [headers.values]
-    # Long cache for assets (they have hashed names)
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
   for = "*.js"
   [headers.values]
-    # Cache JavaScript files
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
   for = "*.css"
   [headers.values]
-    # Cache CSS files
     Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "*.woff2"
-  [headers.values]
-    # Cache fonts
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# Redirects and rewrites
-[[redirects]]
-  from = "/api/*"
-  to = "https://api.realestatehotspot.com/:splat"
-  status = 200
-  force = false
 
 # SPA fallback - serve index.html for all routes
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-# Redirect HTTP to HTTPS
-[[redirects]]
-  from = "http://realestatehotspot.com/*"
-  to = "https://realestatehotspot.com/:splat"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "http://www.realestatehotspot.com/*"
-  to = "https://realestatehotspot.com/:splat"
-  status = 301
-  force = true
-
-# Performance optimizations
-[build.environment]
-  # Enable newer Node.js version
-  NODE_VERSION = "18"
-  
-  # Increase build timeout for large bundles
-  BUILD_TIMEOUT = "15m"
-
-# Functions (if needed for serverless functions)
-[functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild"
-
-# Plugin configuration
-[[plugins]]
-  package = "@netlify/plugin-lighthouse"
-  
-  [plugins.inputs.audits]
-    performance = true
-    accessibility = true
-    best-practices = true
-    seo = true
-    
-  [plugins.inputs.settings]
-    emulatedFormFactor = "desktop"
-    throttling = "simulated3G"
-
-# Analytics (if using Netlify Analytics)
-[template.environment]
-  NETLIFY_ANALYTICS = "true"
-
-# Split testing (for A/B tests)
-[split_testing]
-  [[split_testing.test]]
-    path = "/"
-    branches = ["main", "feature-branch"]

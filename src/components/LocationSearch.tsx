@@ -298,8 +298,8 @@ const LocationSearch = ({
               onClick={startVoiceSearch}
               disabled={isListening}
               className={`p-1 rounded-full transition-colors ${isListening
-                  ? 'bg-red-100 text-red-600 animate-pulse'
-                  : 'hover:bg-gray-100 text-gray-400'
+                ? 'bg-red-100 text-red-600 animate-pulse'
+                : 'hover:bg-gray-100 text-gray-400'
                 }`}
               title="Voice search"
             >
