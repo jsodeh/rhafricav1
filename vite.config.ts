@@ -8,6 +8,11 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    hmr: false, // Completely disable HMR if issues persist
+    watch: {
+      usePolling: false,
+      ignored: ['**/node_modules/**', '**/.git/**'],
+    },
   },
   plugins: [
     react(),

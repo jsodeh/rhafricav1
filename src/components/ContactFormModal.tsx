@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import ContactForm, { ContactFormProps, ContactFormData } from "./ContactForm";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { announceFocusChange } from "@/lib/accessibility/focusManagement";
 
 interface ContactFormModalProps extends Omit<ContactFormProps, "embedded"> {
   isOpen: boolean;
@@ -34,13 +36,27 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
   ...contactFormProps
 }) => {
   const isMobile = useIsMobile();
+  const focusTrapRef = useFocusTrap({ isActive: isOpen });
+
+  // Announce modal state changes
+  useEffect(() => {
+    if (isOpen) {
+      announceFocusChange(`${title || "Contact form"} dialog opened`, 'assertive');
+    }
+  }, [isOpen, title]);
 
   const handleSuccess = () => {
     onSuccess?.();
+    announceFocusChange("Form submitted successfully", 'assertive');
     // Auto-close modal after success (with a small delay for UX)
     setTimeout(() => {
       onClose();
     }, 2000);
+  };
+
+  const handleClose = () => {
+    announceFocusChange("Dialog closed", 'polite');
+    onClose();
   };
 
   const formContent = (
@@ -55,23 +71,30 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
   // Use drawer on mobile, dialog on desktop
   if (isMobile) {
     return (
-      <Drawer open={isOpen} onOpenChange={onClose}>
-        <DrawerContent className="max-h-[85vh]">
+      <Drawer open={isOpen} onOpenChange={handleClose}>
+        <DrawerContent 
+          ref={focusTrapRef}
+          className="max-h-[85vh]"
+          role="dialog"
+          aria-labelledby="drawer-title"
+          aria-describedby={description ? "drawer-description" : undefined}
+        >
           <DrawerHeader className="text-left">
             <div className="flex items-center justify-between">
               <div>
-                <DrawerTitle>{title || "Contact Form"}</DrawerTitle>
+                <DrawerTitle id="drawer-title">{title || "Contact Form"}</DrawerTitle>
                 {description && (
-                  <DrawerDescription>{description}</DrawerDescription>
+                  <DrawerDescription id="drawer-description">{description}</DrawerDescription>
                 )}
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onClose}
+                onClick={handleClose}
                 className="h-8 w-8 p-0"
+                aria-label="Close contact form"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
           </DrawerHeader>
@@ -84,23 +107,30 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent 
+        ref={focusTrapRef}
+        className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto"
+        role="dialog"
+        aria-labelledby="dialog-title"
+        aria-describedby={description ? "dialog-description" : undefined}
+      >
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle>{title || "Contact Form"}</DialogTitle>
+              <DialogTitle id="dialog-title">{title || "Contact Form"}</DialogTitle>
               {description && (
-                <DialogDescription>{description}</DialogDescription>
+                <DialogDescription id="dialog-description">{description}</DialogDescription>
               )}
             </div>
             <Button
               variant="ghost"
               size="sm"
-              onClick={onClose}
+              onClick={handleClose}
               className="h-8 w-8 p-0"
+              aria-label="Close contact form"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </DialogHeader>

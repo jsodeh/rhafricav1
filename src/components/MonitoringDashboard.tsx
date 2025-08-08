@@ -25,6 +25,7 @@ import {
 import { cn } from '@/lib/utils';
 import { healthCheckManager, SystemHealth, HealthCheckResult } from '@/lib/healthCheck';
 import { performanceMonitor, PerformanceReport, PerformanceMetric } from '@/lib/performanceMonitor';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface MonitoringDashboardProps {
   className?: string;
@@ -32,6 +33,47 @@ interface MonitoringDashboardProps {
   refreshInterval?: number;
   defaultVisible?: boolean;
 }
+
+// Helper function to check if user has admin access
+const hasAdminAccess = (user: any): boolean => {
+  if (!user) return false;
+  
+  // Check for admin account types
+  const adminAccountTypes = [
+    'Admin',
+    'Super Admin', 
+    'System Administrator',
+    'Platform Admin'
+  ];
+  
+  return adminAccountTypes.includes(user.accountType);
+};
+
+// Helper function to check if monitoring should be visible
+const shouldShowMonitoring = (user: any): boolean => {
+  // Check environment variables for explicit monitoring control
+  const enableMonitoring = import.meta.env.VITE_ENABLE_PERFORMANCE_MONITORING;
+  const isDevelopment = import.meta.env.DEV;
+  const isProduction = import.meta.env.PROD;
+  
+  // If monitoring is explicitly disabled, don't show
+  if (enableMonitoring === 'false') {
+    return false;
+  }
+  
+  // In development environment, always show monitoring
+  if (isDevelopment) {
+    return true;
+  }
+  
+  // In production, only show to admin users
+  if (isProduction) {
+    return hasAdminAccess(user);
+  }
+  
+  // Default fallback - show to admin users only
+  return hasAdminAccess(user);
+};
 
 const StatusIcon: React.FC<{ status: 'healthy' | 'degraded' | 'unhealthy' }> = ({ status }) => {
   switch (status) {
@@ -171,6 +213,20 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({
   refreshInterval = 30000,
   defaultVisible = false,
 }) => {
+  const { user, isAuthenticated } = useAuth();
+  
+  // Check if monitoring should be available for this user
+  const canAccessMonitoring = shouldShowMonitoring(user);
+  
+  // If user doesn't have access, don't render anything
+  if (!canAccessMonitoring) {
+    return null;
+  }
+  
+  // Additional check for development-only features
+  const isDevelopmentMode = import.meta.env.DEV;
+  const showAdvancedFeatures = isDevelopmentMode || hasAdminAccess(user);
+  
   const [isVisible, setIsVisible] = useState(defaultVisible || process.env.NODE_ENV === 'development');
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
   const [performanceReport, setPerformanceReport] = useState<PerformanceReport | null>(null);
@@ -286,6 +342,16 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({
         <div className="flex items-center gap-2">
           <Monitor className="h-5 w-5" />
           <h3 className="font-semibold">System Monitor</h3>
+          {isDevelopmentMode && (
+            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+              DEV
+            </Badge>
+          )}
+          {hasAdminAccess(user) && !isDevelopmentMode && (
+            <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+              ADMIN
+            </Badge>
+          )}
           {overallStatus === 'healthy' && <CheckCircle className="h-4 w-4 text-green-600" />}
           {overallStatus === 'warning' && <AlertTriangle className="h-4 w-4 text-yellow-600" />}
           {overallStatus === 'critical' && <AlertTriangle className="h-4 w-4 text-red-600" />}
@@ -298,18 +364,22 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0"
+            title="Refresh monitoring data"
           >
             <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
           </Button>
           
-          <Button
-            onClick={downloadReport}
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-          >
-            <Download className="h-4 w-4" />
-          </Button>
+          {showAdvancedFeatures && (
+            <Button
+              onClick={downloadReport}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Download monitoring report (Admin/Dev only)"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          )}
           
           <Button
             onClick={() => setIsVisible(false)}

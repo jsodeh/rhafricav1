@@ -59,10 +59,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Check for existing session on mount
   useEffect(() => {
+    let mounted = true; // Prevent state updates if component unmounts
+    
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
+        if (mounted && session?.user) {
           const user = convertSupabaseUser(session.user);
           setUser(user);
           setIsAuthenticated(true);
@@ -70,7 +72,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (error) {
         console.error('Error checking session:', error);
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -79,6 +83,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return; // Prevent updates if component unmounted
+        
         console.log('Auth state changed:', event, session?.user?.email);
         
         if (event === 'SIGNED_IN' && session?.user) {
@@ -99,7 +105,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {

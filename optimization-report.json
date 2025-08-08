@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-08-06T09:18:01.756Z",
+  "originalSize": 56544,
+  "optimizedSize": 40325,
+  "criticalSize": 5351,
+  "savings": 16219,
+  "savingsPercent": 28.68,
+  "recommendations": [
+    "Consider using the critical CSS for above-the-fold content",
+    "Load non-critical CSS asynchronously",
+    "Use CSS custom properties for consistent theming",
+    "Remove unused Tailwind classes with purging",
+    "Consider CSS-in-JS for component-specific styles"
+  ]
+}

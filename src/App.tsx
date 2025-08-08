@@ -6,6 +6,7 @@ import { createOptimizedQueryClient } from "@/lib/queryClient";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SearchProvider } from "@/contexts/SearchContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import { ProtectedRoute, AdminRoute, AgentRoute, OwnerRoute, ProfessionalRoute, AuthRoute } from "@/components/ProtectedRoute";
 import { WelcomeNotificationProvider } from "./components/WelcomeNotificationProvider";
 import { ErrorBoundary, CriticalErrorBoundary } from "./components/ErrorBoundary";
@@ -13,6 +14,7 @@ import ErrorNotificationSystem from "./components/ErrorNotificationSystem";
 import AIAssistant from "./components/AIAssistant";
 import LiveChatWidget from "./components/LiveChatWidget";
 import PerformanceMonitor from "./components/PerformanceMonitor";
+import PerformanceOptimizer from "./components/PerformanceOptimizer";
 import { OrganizationSEO } from "./components/SEO";
 import { AnalyticsProvider, AnalyticsDebugger } from "./components/AnalyticsProvider";
 import MonitoringDashboard from "./components/MonitoringDashboard";
@@ -93,8 +95,9 @@ const App = () => {
   <CriticalErrorBoundary>
     <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <AuthProvider>
-        <SearchProvider>
+      <AccessibilityProvider>
+        <AuthProvider>
+          <SearchProvider>
           <WelcomeNotificationProvider />
           <Toaster />
           <Sonner />
@@ -172,6 +175,7 @@ const App = () => {
             <AIAssistant />
             <LiveChatWidget />
             <PerformanceMonitor />
+            <PerformanceOptimizer />
             <OrganizationSEO />
             <AnalyticsDebugger />
             <MonitoringDashboard />
@@ -179,6 +183,7 @@ const App = () => {
           </BrowserRouter>
         </SearchProvider>
       </AuthProvider>
+      </AccessibilityProvider>
     </TooltipProvider>
     </QueryClientProvider>
   </CriticalErrorBoundary>

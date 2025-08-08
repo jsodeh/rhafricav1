@@ -52,7 +52,7 @@ const Properties = () => {
       keywords={pageConfigs.properties.keywords}
       ogImage="/properties-hero.jpg"
     >
-      <div className="min-h-screen bg-gray-50">
+      <div className="page-container bg-gray-50">
       {/* Navigation */}
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -77,7 +77,7 @@ const Properties = () => {
         </div>
       </nav>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto page-content">
         {/* Search and Filters */}
         <Card className="mb-8 shadow-lg">
           <CardContent className="p-6">
@@ -245,14 +245,18 @@ const Properties = () => {
           <>
             <div className={
               viewMode === "grid"
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                : "space-y-4"
+                ? "property-grid"
+                : "space-y-spacing-4"
             }>
               {properties
                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                 .map((property) => (
                   <div key={property.id} className={viewMode === "list" ? "w-full" : ""}>
-                    <PropertyCard property={property} />
+                    <PropertyCard 
+                      property={property} 
+                      variant={property.featured ? 'featured' : 'standard'}
+                      aspectRatio="16:9"
+                    />
                   </div>
                 ))}
             </div>

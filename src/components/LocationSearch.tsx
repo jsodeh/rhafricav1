@@ -5,11 +5,20 @@ import { useSearch } from "@/contexts/SearchContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+// Type declaration for Speech Recognition API
+declare global {
+  interface Window {
+    webkitSpeechRecognition?: any;
+    SpeechRecognition?: any;
+  }
+}
+
 interface LocationSearchProps {
   placeholder?: string;
   className?: string;
   onLocationSelect?: (location: string) => void;
   inputClassName?: string;
+  preventAutoSuggestions?: boolean;
 }
 
 // Sample Nigerian cities and areas for autocomplete
@@ -67,6 +76,7 @@ const LocationSearch = ({
   className = "",
   onLocationSelect,
   inputClassName = "",
+  preventAutoSuggestions = false,
 }: LocationSearchProps) => {
   const navigate = useNavigate();
   const {
@@ -82,6 +92,7 @@ const LocationSearch = ({
   const [isListening, setIsListening] = useState(false);
   const [showSmartSuggestions, setShowSmartSuggestions] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -104,8 +115,8 @@ const LocationSearch = ({
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
-      setShowCurrentLocation(true);
-      setShowSmartSuggestions(true);
+      setShowCurrentLocation(false);
+      setShowSmartSuggestions(false);
     }
   }, [searchQuery, setSuggestions]);
 
@@ -128,6 +139,25 @@ const LocationSearch = ({
 
   const handleInputFocus = () => {
     setIsSearchFocused(true);
+    // Only show suggestions if auto-suggestions are not prevented
+    if (!preventAutoSuggestions) {
+      // Only show suggestions if user has typed something OR explicitly clicked
+      if (searchQuery.length > 0) {
+        setShowSuggestions(true);
+        setShowCurrentLocation(true);
+        setShowSmartSuggestions(false);
+      } else if (hasUserInteracted) {
+        setShowCurrentLocation(true);
+        setShowSmartSuggestions(true);
+      }
+    }
+    // If preventAutoSuggestions is true or conditions not met, suggestions remain hidden
+  };
+
+  const handleInputClick = () => {
+    setHasUserInteracted(true);
+    setIsSearchFocused(true);
+    // Always show suggestions on explicit click, regardless of preventAutoSuggestions
     if (searchQuery.length > 0) {
       setShowSuggestions(true);
       setShowCurrentLocation(true);
@@ -160,7 +190,7 @@ const LocationSearch = ({
   };
 
   const startVoiceSearch = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    if (!window.webkitSpeechRecognition && !window.SpeechRecognition) {
       alert('Voice search is not supported in this browser');
       return;
     }
@@ -230,8 +260,9 @@ const LocationSearch = ({
     setSearchQuery("");
     setSuggestions([]);
     setShowSuggestions(false);
-    setShowCurrentLocation(true);
-    setShowSmartSuggestions(true);
+    setShowCurrentLocation(false);
+    setShowSmartSuggestions(false);
+    setHasUserInteracted(false);
     inputRef.current?.focus();
   };
 
@@ -256,20 +287,20 @@ const LocationSearch = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={handleInputFocus}
+            onClick={handleInputClick}
             onKeyPress={handleKeyPress}
             placeholder={placeholder}
-            className={`w-full pl-12 pr-20 border-2 border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm ${inputClassName}`}
+            className={`w-full pl-12 pr-20 border-2 border-blue-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm ${inputClassName}`}
           />
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1 z-10">
             {/* Voice Search Button */}
             <button
               onClick={startVoiceSearch}
               disabled={isListening}
-              className={`p-1 rounded-full transition-colors ${
-                isListening
+              className={`p-1 rounded-full transition-colors ${isListening
                   ? 'bg-red-100 text-red-600 animate-pulse'
                   : 'hover:bg-gray-100 text-gray-400'
-              }`}
+                }`}
               title="Voice search"
             >
               <Mic className="h-4 w-4" />
@@ -289,7 +320,7 @@ const LocationSearch = ({
       </div>
 
       {(showSuggestions || showCurrentLocation || showSmartSuggestions) && (
-        <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 z-50 max-h-96 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg mt-1 z-50 max-h-96 overflow-y-auto">
           <div className="py-2">
             {/* Current Location Option */}
             {showCurrentLocation && (

@@ -32,6 +32,9 @@ import { useFeaturedAgents } from "@/hooks/useAgents";
 import { useAuth } from "@/contexts/AuthContext";
 import SEO from "@/components/SEO";
 import { pageConfigs } from "@/lib/seo";
+import PropertyCard from "@/components/PropertyCard";
+import PropertyCarousel from "@/components/PropertyCarousel";
+import { useRouteAnnouncement } from "@/hooks/useFocusTrap";
 
 // Stacked Carousel Component
 const StackedCarousel = () => {
@@ -145,7 +148,7 @@ const StackedCarousel = () => {
 const HeroSection = React.forwardRef<HTMLDivElement>((props, ref) => {
   return (
     <section
-      className="relative min-h-screen flex items-center"
+      className="relative h-[60vh] flex items-center"
       id="hero-section"
     >
       {/* Background Image */}
@@ -157,21 +160,22 @@ const HeroSection = React.forwardRef<HTMLDivElement>((props, ref) => {
       >
         <div className="absolute inset-0 bg-black bg-opacity-40"></div>
       </div>
-      {/* Hero Content */}
-      <div className="relative z-10 container mx-auto px-4">
-        <div className="max-w-4xl mx-auto text-left">
-          <div className="mb-12">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-              Africa's trusted<br />real estate Platform
+      {/* Hero Content - Left Aligned like Zillow */}
+      <div className="relative z-10 container mx-auto px-4 max-w-7xl">
+        <div className="max-w-2xl text-left">
+          <div className="mb-8">
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 leading-tight">
+              Africa's trusted real estate platform
             </h1>
           </div>
-          {/* Centered Search Bar on Hero */}
-          <div className="mb-8 flex justify-center md:justify-start">
-            <div className="w-full max-w-xl" ref={ref}>
+          {/* Search Bar */}
+          <div className="mb-6">
+            <div className="w-full max-w-lg" ref={ref}>
               <LocationSearch
                 placeholder="Enter an address, neighborhood, city, or ZIP code"
                 className="w-full"
-                inputClassName="h-14 py-4 text-lg"
+                inputClassName="h-12 py-3 text-base rounded-xl"
+                preventAutoSuggestions={true}
                 onLocationSelect={(location) => {
                   console.log("Hero search location selected:", location);
                 }}
@@ -193,11 +197,37 @@ const Index = () => {
   const heroSearchRef = useRef<HTMLDivElement>(null);
   const { isAuthenticated, user } = useAuth();
 
+  // Announce route change for accessibility
+  useRouteAnnouncement("Real Estate Hotspot - Find Your Perfect Property");
+
   // Fetch real data from Supabase
   const { data: featuredProperties, isLoading: propertiesLoading, error: propertiesError } = useProperties({ 
     searchTerm: '', 
     city: '' 
   });
+  
+  // Fetch properties by location
+  const { data: lagosProperties } = useProperties({ 
+    searchTerm: '', 
+    city: 'Lagos' 
+  });
+  
+  const { data: abujaProperties } = useProperties({ 
+    searchTerm: '', 
+    city: 'Abuja' 
+  });
+  
+  // Fetch properties by type
+  const { data: apartmentProperties } = useProperties({ 
+    searchTerm: '', 
+    propertyType: 'apartment' 
+  });
+  
+  const { data: houseProperties } = useProperties({ 
+    searchTerm: '', 
+    propertyType: 'house' 
+  });
+  
   const { data: featuredAgents, isLoading: agentsLoading, error: agentsError } = useFeaturedAgents(6);
 
   // Handle scroll to show/hide search in navigation
@@ -231,6 +261,17 @@ const Index = () => {
 
   return (
     <SearchProvider>
+      {/* Skip Links for Accessibility */}
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+      <a href="#search-section" className="skip-link">
+        Skip to search
+      </a>
+      <a href="#featured-properties" className="skip-link">
+        Skip to featured properties
+      </a>
+      
       <SEO
         title={pageConfigs.home.title}
         description={pageConfigs.home.description}
@@ -248,15 +289,84 @@ const Index = () => {
           }
         }}
       >
-      <div className="min-h-screen bg-white">
+      <div className="page-container bg-white">
         <StickyNavigation
           isScrolled={isScrolled}
           showSearchInNav={showSearchInNav}
         />
-        <HeroSection ref={heroSearchRef} />
+        <main id="main-content" role="main">
+          <HeroSection ref={heroSearchRef} />
+        </main>
 
-        {/* Stacked, Scrollable Recommendations/Services Section */}
-        <section className="py-16 bg-white">
+        {/* Property Carousels Section - Right after hero like Zillow */}
+        <section className="py-8 bg-white">
+          <div className="container mx-auto px-4 max-w-7xl">
+            
+            {/* Recently for You Carousel */}
+            {featuredProperties && featuredProperties.length > 0 && (
+              <div className="mb-12">
+                <PropertyCarousel
+                  title="Recently for You"
+                  subtitle="Based on your recent activity"
+                  properties={featuredProperties.slice(0, 8)}
+                  viewAllLink="/properties"
+                />
+              </div>
+            )}
+
+            {/* Properties in Lagos */}
+            {lagosProperties && lagosProperties.length > 0 && (
+              <div className="mb-12">
+                <PropertyCarousel
+                  title="Homes for You in Lagos"
+                  subtitle="Discover properties in Nigeria's commercial capital"
+                  properties={lagosProperties.slice(0, 8)}
+                  viewAllLink="/properties?city=Lagos"
+                />
+              </div>
+            )}
+
+            {/* Properties in Abuja */}
+            {abujaProperties && abujaProperties.length > 0 && (
+              <div className="mb-12">
+                <PropertyCarousel
+                  title="Properties in Abuja"
+                  subtitle="Find your home in the Federal Capital Territory"
+                  properties={abujaProperties.slice(0, 8)}
+                  viewAllLink="/properties?city=Abuja"
+                />
+              </div>
+            )}
+
+            {/* Apartments */}
+            {apartmentProperties && apartmentProperties.length > 0 && (
+              <div className="mb-12">
+                <PropertyCarousel
+                  title="Apartments for Sale"
+                  subtitle="Modern apartments in prime locations"
+                  properties={apartmentProperties.slice(0, 8)}
+                  viewAllLink="/properties?type=apartment"
+                />
+              </div>
+            )}
+
+            {/* Houses */}
+            {houseProperties && houseProperties.length > 0 && (
+              <div className="mb-12">
+                <PropertyCarousel
+                  title="Houses for Sale"
+                  subtitle="Family homes with space to grow"
+                  properties={houseProperties.slice(0, 8)}
+                  viewAllLink="/properties?type=house"
+                />
+              </div>
+            )}
+
+          </div>
+        </section>
+
+        {/* Get home recommendations section */}
+        <section id="search-section" className="py-16 bg-gray-50" aria-labelledby="services-heading">
           <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center md:items-start gap-12 px-4">
             {/* Left: Text and CTA */}
             <div className="flex-1 max-w-xs w-full mb-8 md:mb-0 md:mr-8">
@@ -270,7 +380,7 @@ const Index = () => {
                 </>
               ) : (
                 <>
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Get home recommendations</h2>
+                  <h2 id="services-heading" className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Get home recommendations</h2>
                   <p className="text-gray-600 mb-6">Sign in for a more personalized experience.</p>
                   <Link to="/login">
                     <Button className="text-base px-8 py-2 rounded-lg font-semibold">Sign in</Button>
@@ -281,107 +391,6 @@ const Index = () => {
             {/* Right: Interactive Stacked Carousel */}
             <div className="flex-1 w-full flex justify-center">
               <StackedCarousel />
-            </div>
-          </div>
-        </section>
-
-        {/* Featured Properties Section */}
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="max-w-6xl mx-auto">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                    {isAuthenticated ? "Recommended for you" : "Featured properties"}
-                  </h2>
-                  <p className="text-gray-600">
-                    {isAuthenticated ? "Based on your preferences and activity" : "Handpicked quality properties"}
-                  </p>
-                </div>
-                <Link to="/properties">
-                  <Button variant="outline">View all</Button>
-                </Link>
-              </div>
-
-              {propertiesLoading ? (
-                <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-                  {[1, 2, 3, 4].map((i) => (
-                    <Card key={i} className="min-w-[280px] sm:min-w-[320px] flex-shrink-0 animate-pulse snap-start">
-                      <div className="h-48 bg-gray-200 rounded-t-lg"></div>
-                      <CardContent className="p-4">
-                        <div className="h-6 bg-gray-200 rounded mb-3"></div>
-                        <div className="space-y-2">
-                          <div className="h-4 bg-gray-200 rounded"></div>
-                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : propertiesError ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-600">Unable to load properties. Please try again later.</p>
-                </div>
-              ) : featuredProperties && featuredProperties.length > 0 ? (
-                <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-                  {featuredProperties.slice(0, 8).map((property) => (
-                    <Link to={`/properties/${property.id}`} key={property.id}>
-                      <Card className="hover:shadow-lg transition-shadow group cursor-pointer min-w-[280px] sm:min-w-[320px] flex-shrink-0 snap-start">
-                        <div className="relative">
-                          <img
-                            src={property.images && property.images.length > 0 ? property.images[0] : "/placeholder.svg"}
-                            alt={property.title}
-                            className="w-full h-48 object-cover rounded-t-lg"
-                          />
-                          <Badge className="absolute top-3 left-3 bg-blue-700 text-white border-0">
-                            {property.listing_type === 'sale' ? 'For Sale' : 'For Rent'}
-                          </Badge>
-                        </div>
-
-                        <CardContent className="p-4">
-                          <div className="mb-3">
-                            <span className="text-2xl font-bold text-gray-900">
-                              ₦{property.price?.toLocaleString()}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center space-x-4 text-gray-600 mb-3">
-                            <div className="flex items-center">
-                              <Bed className="h-4 w-4 mr-1" />
-                              <span className="text-sm">
-                                {property.bedrooms || 0} bed
-                              </span>
-                            </div>
-                            <div className="flex items-center">
-                              <Bath className="h-4 w-4 mr-1" />
-                              <span className="text-sm">
-                                {property.bathrooms || 0} bath
-                              </span>
-                            </div>
-                            <div className="flex items-center">
-                              <Square className="h-4 w-4 mr-1" />
-                              <span className="text-sm">{property.area_sqm ? `${property.area_sqm} sqm` : 'N/A'}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center text-gray-600 mb-3">
-                            <MapPin className="h-4 w-4 mr-1" />
-                            <span className="text-sm">{property.city}, {property.state}</span>
-                          </div>
-
-                          <h3 className="font-medium text-gray-900 group-hover:text-blue-700 transition-colors">
-                            {property.title}
-                          </h3>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-600">No properties available at the moment.</p>
-                </div>
-              )}
             </div>
           </div>
         </section>

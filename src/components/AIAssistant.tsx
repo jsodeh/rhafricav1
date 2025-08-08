@@ -68,7 +68,7 @@ const AIAssistant = () => {
 
       {/* Chat Modal */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-start p-6">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-end justify-start p-6">
           <Card className="w-96 h-[500px] flex flex-col shadow-2xl">
             <CardContent className="p-0 h-full flex flex-col">
               {/* Header */}

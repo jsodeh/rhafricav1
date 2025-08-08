@@ -6,7 +6,7 @@ export interface Property {
   id: string;
   title: string;
   description: string | null;
-  property_type: 'apartment' | 'house' | 'duplex' | 'penthouse' | 'land' | 'commercial' | 'office';
+  property_type: string; // Made more flexible to handle any property type
   listing_type: 'sale' | 'rent';
   status: 'for_sale' | 'for_rent' | 'sold' | 'rented' | 'off_market';
   price: number;
@@ -28,9 +28,13 @@ export interface Property {
   created_at: string;
   agent_id: string | null;
   real_estate_agents?: {
+    id?: string;
+    name?: string;
     agency_name: string | null;
     phone: string | null;
+    email?: string | null;
     rating: number | null;
+    profile_image_url?: string | null;
   } | null;
 }
 
@@ -103,5 +107,70 @@ export const useProperties = (options: UsePropertiesOptions = {}) => {
       console.log('Fetched properties:', data);
       return data as Property[];
     },
+  });
+};
+// Hook to fetch a single property by ID
+export const useProperty = (id: string) => {
+  return useQuery({
+    queryKey: ['property', id],
+    queryFn: async () => {
+      console.log('Fetching property with ID:', id);
+      
+      // First try with agent relationship, fallback to basic query if it fails
+      let data, error;
+      
+      try {
+        const result = await supabase
+          .from('properties')
+          .select(`
+            *,
+            real_estate_agents (
+              id,
+              name,
+              agency_name,
+              phone,
+              email,
+              rating,
+              profile_image_url
+            )
+          `)
+          .eq('id', id)
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      } catch (relationError) {
+        console.warn('Failed to fetch with agent relation, trying basic query:', relationError);
+        
+        // Fallback to basic query without agent relationship
+        const result = await supabase
+          .from('properties')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      }
+
+      if (error) {
+        console.error('Error fetching property:', error);
+        throw error;
+      }
+
+      console.log('Fetched property:', data);
+      return data as Property & {
+        real_estate_agents: {
+          id: string;
+          name: string;
+          agency_name: string | null;
+          phone: string | null;
+          email: string | null;
+          rating: number | null;
+          profile_image_url: string | null;
+        } | null;
+      };
+    },
+    enabled: !!id, // Only run query if ID is provided
   });
 };

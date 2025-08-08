@@ -1,0 +1,151 @@
+:root {
+  /* Color System */
+  --color-primary: 29 78 216; /* blue-700 */
+  --color-primary-50: 239 246 255; /* blue-50 */
+  --color-primary-100: 219 234 254; /* blue-100 */
+  --color-primary-500: 59 130 246; /* blue-500 */
+  --color-primary-600: 37 99 235; /* blue-600 */
+  --color-primary-700: 29 78 216; /* blue-700 */
+  --color-primary-800: 30 64 175; /* blue-800 */
+  --color-primary-900: 30 58 138; /* blue-900 */
+  
+  --color-secondary: 245 158 11; /* amber-500 */
+  --color-secondary-50: 255 251 235; /* amber-50 */
+  --color-secondary-100: 254 243 199; /* amber-100 */
+  --color-secondary-400: 251 191 36; /* amber-400 */
+  --color-secondary-500: 245 158 11; /* amber-500 */
+  --color-secondary-600: 217 119 6; /* amber-600 */
+  
+  /* Neutral Colors */
+  --color-white: 255 255 255;
+  --color-gray-50: 249 250 251;
+  --color-gray-100: 243 244 246;
+  --color-gray-200: 229 231 235;
+  --color-gray-300: 209 213 219;
+  --color-gray-400: 156 163 175;
+  --color-gray-500: 107 114 128;
+  --color-gray-600: 75 85 99;
+  --color-gray-700: 55 65 81;
+  --color-gray-800: 31 41 55;
+  --color-gray-900: 17 24 39;
+  
+  /* Semantic Colors - WCAG AA Compliant */
+  --color-success: 4 120 87; /* emerald-700 - 4.5:1 contrast */
+  --color-success-50: 240 253 244; /* emerald-50 */
+  --color-success-100: 220 252 231; /* emerald-100 */
+  --color-success-500: 16 185 129; /* emerald-500 */
+  --color-success-600: 4 120 87; /* emerald-700 */
+  
+  --color-warning: 161 98 7; /* yellow-700 - 4.5:1 contrast */
+  --color-warning-50: 255 251 235; /* yellow-50 */
+  --color-warning-100: 254 243 199; /* yellow-100 */
+  --color-warning-500: 245 158 11; /* yellow-500 */
+  --color-warning-600: 161 98 7; /* yellow-700 */
+  
+  --color-error: 220 38 38; /* red-600 - 4.5:1 contrast */
+  --color-error-50: 254 242 242; /* red-50 */
+  --color-error-100: 254 226 226; /* red-100 */
+  --color-error-500: 239 68 68; /* red-500 */
+  --color-error-600: 220 38 38; /* red-600 */
+  
+  /* Background Variations */
+  --color-background: var(--color-white);
+  --color-background-subtle: var(--color-gray-50);
+  --color-background-muted: var(--color-gray-100);
+  
+  /* Spacing System (4px base unit) */
+  --spacing-1: 0.25rem; /* 4px */
+  --spacing-2: 0.5rem; /* 8px */
+  --spacing-3: 0.75rem; /* 12px */
+  --spacing-4: 1rem; /* 16px */
+  --spacing-5: 1.25rem; /* 20px */
+  --spacing-6: 1.5rem; /* 24px */
+  --spacing-8: 2rem; /* 32px */
+  --spacing-10: 2.5rem; /* 40px */
+  --spacing-12: 3rem; /* 48px */
+  --spacing-16: 4rem; /* 64px */
+  
+  /* Border Radius System */
+  --radius-sm: 0.25rem; /* 4px - buttons, badges */
+  --radius-md: 0.5rem; /* 8px - cards, inputs */
+  --radius-lg: 0.75rem; /* 12px - modals, major containers */
+  --radius-xl: 1rem; /* 16px - hero sections, feature cards */
+  --radius-full: 9999px; /* full rounded */
+  
+  /* Shadow System */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  
+  /* Card Shadows */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-card-hover: 0 8px 25px -5px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
+  --shadow-card-elevated: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  
+  /* Typography System */
+  --font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  
+  /* Font Sizes */
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+  --font-size-3xl: 2rem; /* 32px */
+  --font-size-4xl: 3rem; /* 48px */
+  
+  /* Font Weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* Line Heights */
+  --line-height-tight: 1.2; /* for headings */
+  --line-height-normal: 1.4; /* for body text */
+  --line-height-relaxed: 1.6; /* for large text blocks */
+  
+  /* Z-Index System */
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-fixed: 30;
+  --z-modal-backdrop: 40;
+  --z-modal: 50;
+  --z-popover: 60;
+  --z-tooltip: 70;
+  --z-toast: 80;
+  
+  /* Transition System */
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 250ms ease-in-out;
+  --transition-slow: 350ms ease-in-out;
+  
+  /* Component Specific Variables */
+  --button-height-sm: 2rem; /* 32px */
+  --button-height-md: 2.5rem; /* 40px */
+  --button-height-lg: 2.75rem; /* 44px */
+  
+  --input-height: 2.75rem; /* 44px - accessibility minimum */
+  --input-border-width: 1px;
+  --input-focus-ring-width: 3px;
+  --input-focus-ring-opacity: 0.1;
+  
+  /* Card System */
+  --card-padding-sm: var(--spacing-4); /* 16px */
+  --card-padding-md: var(--spacing-6); /* 24px */
+  --card-padding-lg: var(--spacing-8); /* 32px */
+  
+  /* Backdrop System */
+  --backdrop-opacity: 0.5;
+  --backdrop-blur: 8px;
+}
+
+  :root {
+    --color-background: var(--color-gray-900);
+    --color-background-subtle: var(--color-gray-800);
+    --color-background-muted: var(--color-gray-700);
+  }
+}

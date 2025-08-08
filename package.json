@@ -28,7 +28,11 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:all": "npm run test:run && npm run test:e2e",
-    "test:ci": "npm run test:run && npm run test:e2e -- --reporter=dot"
+    "test:ci": "npm run test:run && npm run test:e2e -- --reporter=dot",
+    "optimize:css": "node scripts/optimize-css.js",
+    "optimize:build": "npm run optimize:css && npm run build",
+    "analyze:bundle": "npm run build && npx vite-bundle-analyzer dist/assets/*.js",
+    "performance:audit": "npm run build && npm run preview & sleep 5 && npm run lighthouse && kill %1"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -84,25 +88,32 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
+    "web-vitals": "^5.1.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
+    "@testing-library/jest-dom": "^6.6.4",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
+    "jsdom": "^26.1.0",
     "lovable-tagger": "^1.1.7",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.11",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1"
+    "vite": "^5.4.1",
+    "vitest": "^3.2.4"
   }
 }

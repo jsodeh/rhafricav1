@@ -257,13 +257,13 @@ const SearchResults = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="page-container bg-gray-50">
       <StickyNavigation isScrolled={true} showSearchInNav={false} />
 
       {/* Search Filters */}
       <AdvancedSearchFilters onFiltersChange={handleFiltersChange} />
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto page-content">
         {/* Results Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
@@ -319,7 +319,7 @@ const SearchResults = () => {
         {viewMode === "list" ? (
           <>
             {/* Property Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            <div className="property-grid mb-8">
               {currentProperties.map((property) => (
                 <Link to={`/properties/${property.id}`} key={property.id}>
                   <Card className="hover:shadow-lg transition-all duration-200 group overflow-hidden">
