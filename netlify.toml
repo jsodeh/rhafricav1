@@ -7,18 +7,6 @@
 [build.environment]
   NODE_VERSION = "18"
 
-# Production deployment settings
-[context.production]
-  command = "npm run build"
-
-# Preview deployments
-[context.deploy-preview]
-  command = "npm run build"
-
-# Branch deployments
-[context.branch-deploy]
-  command = "npm run build"
-
 # Headers for security and performance
 [[headers]]
   for = "/*"
