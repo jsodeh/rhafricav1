@@ -48,6 +48,7 @@ const Onboarding = lazy(() => import("./pages/Onboarding"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AuthConfirm = lazy(() => import("./pages/AuthConfirm"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const AddProperty = lazy(() => import("./pages/AddProperty"));
 
 const queryClient = createOptimizedQueryClient();
 
@@ -116,6 +117,11 @@ const App = () => {
               <Route path="/auth/reset-password" element={<ResetPassword />} />
               <Route path="/properties" element={<Properties />} />
               <Route path="/properties/:id" element={<PropertyDetail />} />
+              <Route path="/properties/add" element={
+                <AuthRoute>
+                  <AddProperty />
+                </AuthRoute>
+              } />
               <Route path="/search" element={<SearchResults />} />
               <Route path="/map" element={<MapSearch />} />
               <Route path="/agents" element={<Agents />} />

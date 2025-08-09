@@ -117,14 +117,14 @@ const StickyNavigation = ({
                       <UserIcon className="h-5 w-5" /> My Account
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="bg-white border border-gray-200 shadow-lg backdrop-blur-none">
                     {roleLinks.map((item) => (
-                      <DropdownMenuItem key={item.label} asChild>
+                      <DropdownMenuItem key={item.label} asChild className="hover:bg-gray-50">
                         <Link to={item.to}>{item.label}</Link>
                       </DropdownMenuItem>
                     ))}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={logout} className="text-red-600 cursor-pointer">
+                    <DropdownMenuItem onClick={logout} className="text-red-600 cursor-pointer hover:bg-red-50">
                       <LogOut className="h-4 w-4 mr-2" /> Logout
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -191,14 +191,14 @@ const StickyNavigation = ({
                         <UserIcon className="h-5 w-5" /> My Account
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" className="bg-white border border-gray-200 shadow-lg backdrop-blur-none">
                       {roleLinks.map((item) => (
-                        <DropdownMenuItem key={item.label} asChild>
+                        <DropdownMenuItem key={item.label} asChild className="hover:bg-gray-50">
                           <Link to={item.to}>{item.label}</Link>
                         </DropdownMenuItem>
                       ))}
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={logout} className="text-red-600 cursor-pointer">
+                      <DropdownMenuItem onClick={logout} className="text-red-600 cursor-pointer hover:bg-red-50">
                         <LogOut className="h-4 w-4 mr-2" /> Logout
                       </DropdownMenuItem>
                     </DropdownMenuContent>

@@ -21,10 +21,10 @@ const buttonVariants = cva(
         blue: "bg-blue-700 text-white hover:bg-blue-800 hover:shadow-md hover:-translate-y-0.5 focus-visible:ring-blue-500 active:bg-blue-900 border-0",
       },
       size: {
-        default: "h-10 px-6 py-2 min-w-[44px] rounded-md",
-        sm: "h-8 px-4 py-1 text-sm min-w-[36px] rounded-sm",
-        lg: "h-12 px-8 py-3 text-lg min-w-[48px] rounded-lg",
-        icon: "h-10 w-10 min-w-[44px] rounded-md",
+        default: "h-10 px-6 py-2 min-w-[44px] rounded-lg",
+        sm: "h-8 px-4 py-1 text-sm min-w-[36px] rounded-md",
+        lg: "h-12 px-8 py-3 text-lg min-w-[48px] rounded-xl",
+        icon: "h-10 w-10 min-w-[44px] rounded-lg",
       },
     },
     defaultVariants: {

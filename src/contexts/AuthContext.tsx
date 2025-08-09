@@ -176,6 +176,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           accountType = "Basic User";
       }
 
+      // Use production URL for email redirect
+      const redirectUrl = window.location.hostname === 'localhost' 
+        ? `${window.location.origin}/auth/callback?type=signup`
+        : `https://rhafrica.netlify.app/auth/callback?type=signup`;
+
+      console.log('Signup attempt:', {
+        email: userData.email,
+        redirectTo: redirectUrl,
+        userData: { ...userData, password: '[HIDDEN]' }
+      });
+
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -185,24 +196,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             phone: userData.phone,
             accountType: accountType,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: redirectUrl,
         },
+      });
+
+      console.log('Signup result:', { 
+        user: data.user ? { id: data.user.id, email: data.user.email, confirmed: data.user.email_confirmed_at } : null,
+        session: data.session ? 'Session created' : 'No session',
+        error: error ? error.message : 'No error'
       });
 
       if (error) {
         console.error('Signup error:', error);
+        
+        // Provide more specific error messages
+        if (error.message.includes('User already registered')) {
+          return { success: false, error: 'An account with this email already exists. Try signing in instead.' };
+        } else if (error.message.includes('Invalid email')) {
+          return { success: false, error: 'Please enter a valid email address.' };
+        } else if (error.message.includes('Password')) {
+          return { success: false, error: 'Password must be at least 6 characters long.' };
+        }
+        
         return { success: false, error: error.message };
       }
 
       if (data.user) {
-        // Don't automatically sign in - wait for email verification
+        // Check if email confirmation is required
+        if (!data.session && !data.user.email_confirmed_at) {
+          console.log('User created, email confirmation required');
+          return { success: true };
+        } else if (data.session) {
+          console.log('User created and signed in immediately (email confirmation disabled)');
+          return { success: true };
+        }
+        
         return { success: true };
       }
 
-      return { success: false, error: 'Signup failed' };
-    } catch (error) {
+      return { success: false, error: 'Signup failed - no user created' };
+    } catch (error: any) {
       console.error("Signup failed:", error);
-      return { success: false, error: 'An unexpected error occurred' };
+      return { success: false, error: error.message || 'An unexpected error occurred' };
     } finally {
       setIsLoading(false);
     }
@@ -274,20 +309,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const resendVerification = async (email: string): Promise<{ success: boolean; error?: string }> => {
     try {
+      console.log('Resending verification email to:', email);
+      
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: email,
+        options: {
+          emailRedirectTo: window.location.hostname === 'localhost' 
+            ? `${window.location.origin}/auth/callback?type=signup`
+            : `https://rhafrica.netlify.app/auth/callback?type=signup`,
+        }
       });
 
       if (error) {
         console.error('Resend verification error:', error);
+        
+        if (error.message.includes('Email rate limit exceeded')) {
+          return { success: false, error: 'Please wait a few minutes before requesting another verification email.' };
+        } else if (error.message.includes('User not found')) {
+          return { success: false, error: 'No account found with this email address.' };
+        }
+        
         return { success: false, error: error.message };
       }
 
+      console.log('Verification email resent successfully');
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Resend verification failed:', error);
-      return { success: false, error: 'An unexpected error occurred' };
+      return { success: false, error: error.message || 'An unexpected error occurred' };
     }
   };
 

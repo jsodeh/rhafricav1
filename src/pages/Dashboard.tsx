@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import StickyNavigation from "@/components/StickyNavigation";
+import ProfileSetupProgress from "@/components/ProfileSetupProgress";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -128,8 +129,18 @@ const mockActivities = [
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Show profile setup on first visit or if profile is incomplete
+  useEffect(() => {
+    const hasSeenSetup = localStorage.getItem('hasSeenProfileSetup');
+    if (!hasSeenSetup && user) {
+      setShowProfileSetup(true);
+      localStorage.setItem('hasSeenProfileSetup', 'true');
+    }
+  }, [user]);
 
   useEffect(() => {
     // Redirect to role-specific dashboard if user type is not buyer/renter
@@ -172,6 +183,14 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2"
+              onClick={() => setShowProfileSetup(true)}
+            >
+              <User className="h-4 w-4" />
+              Setup Profile
+            </Button>
             <Button variant="outline" className="flex items-center gap-2">
               <Bell className="h-4 w-4" />
               Notifications
@@ -646,6 +665,12 @@ const Dashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Profile Setup Progress Modal */}
+      <ProfileSetupProgress 
+        isOpen={showProfileSetup} 
+        onClose={() => setShowProfileSetup(false)} 
+      />
     </div>
   );
 };

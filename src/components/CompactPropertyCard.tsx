@@ -26,10 +26,10 @@ const CompactPropertyCard = ({ property, showSaveButton = true }: CompactPropert
   const primaryImage = property.images && property.images.length > 0 ? property.images[0] : '/placeholder.svg';
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 group cursor-pointer overflow-hidden">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer overflow-hidden">
       <Link to={`/properties/${property.id}`}>
         {/* Image Container */}
-        <div className="relative overflow-hidden">
+        <div className="relative overflow-hidden rounded-t-xl">
           <div className="aspect-[4/3] w-full relative">
             <img 
               src={primaryImage} 

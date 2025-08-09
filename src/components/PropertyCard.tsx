@@ -68,9 +68,9 @@ const PropertyCard = ({
   };
 
   return (
-    <Card className={`${getVariantClasses()} hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group cursor-pointer flex flex-col h-full`}>
+    <Card className={`${getVariantClasses()} hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group cursor-pointer flex flex-col h-full rounded-xl`}>
       {/* Image Container with Fixed Aspect Ratio */}
-      <div className="relative overflow-hidden rounded-t-lg bg-gray-100">
+      <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
         <div className={`${getAspectRatioClass()} w-full relative`}>
           <img 
             src={primaryImage} 
