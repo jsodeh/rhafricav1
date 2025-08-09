@@ -258,3 +258,67 @@ export const useProperties = (filters?: PropertyFilters) => {
     searchProperties,
   };
 };
+
+// Hook for single property details
+export const useProperty = (propertyId: string) => {
+  const [data, setData] = useState<PropertyWithAgent | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!propertyId) {
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchProperty = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const { data: propertyData, error: propertyError } = await supabase
+          .from('properties')
+          .select(`
+            *,
+            real_estate_agents (
+              id,
+              agency_name,
+              phone,
+              rating,
+              profile_image_url,
+              bio,
+              years_experience,
+              specializations
+            )
+          `)
+          .eq('id', propertyId)
+          .single();
+
+        if (propertyError) {
+          throw propertyError;
+        }
+
+        // Increment view count
+        await supabase
+          .from('properties')
+          .update({ views_count: (propertyData.views_count || 0) + 1 })
+          .eq('id', propertyId);
+
+        setData(propertyData);
+      } catch (err: any) {
+        console.error('Error fetching property:', err);
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProperty();
+  }, [propertyId]);
+
+  return {
+    data,
+    isLoading,
+    error,
+  };
+};
