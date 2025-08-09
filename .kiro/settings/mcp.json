@@ -1,0 +1,40 @@
+{
+    "mcpServers": {
+        "supabase": {
+            "command": "uvx",
+            "args": [
+                "mcp-server-supabase"
+            ],
+            "env": {
+                "SUPABASE_URL": "https://kepvtlgmtwhjsryfqexg.supabase.co",
+                "SUPABASE_SERVICE_ROLE_KEY": "your_service_role_key_here",
+                "FASTMCP_LOG_LEVEL": "INFO"
+            },
+            "disabled": false,
+            "autoApprove": [
+                "list_tables",
+                "describe_table",
+                "select_data",
+                "get_table_info",
+                "count_rows",
+                "get_schema"
+            ]
+        },
+        "filesystem": {
+            "command": "uvx",
+            "args": [
+                "mcp-server-filesystem",
+                "--base-path",
+                "."
+            ],
+            "env": {
+                "FASTMCP_LOG_LEVEL": "ERROR"
+            },
+            "disabled": false,
+            "autoApprove": [
+                "read_file",
+                "list_directory"
+            ]
+        }
+    }
+}

@@ -128,7 +128,7 @@ const PropertyCard = ({
         </div>
         
         {/* Title Section */}
-        <h3 className="text-lg font-semibold text-gray-900 mb-3 group-hover:text-blue-700 transition-colors duration-150 line-clamp-2 flex-shrink-0 leading-tight">
+        <h3 className="text-lg font-semibold text-gray-900 mb-3 group-hover:text-blue-700 transition-colors duration-150 line-clamp-2 flex-shrink-0 leading-tight h-14 overflow-hidden">
           {property.title}
         </h3>
         

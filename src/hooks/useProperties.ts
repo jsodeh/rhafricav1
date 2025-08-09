@@ -1,176 +1,260 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { Property, PropertyType, ListingType, PropertyStatus } from '@/types/database';
 
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+interface PropertyFilters {
+  city?: string;
+  state?: string;
+  property_type?: PropertyType;
+  listing_type?: ListingType;
+  status?: PropertyStatus;
+  min_price?: number;
+  max_price?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  featured?: boolean;
+  search?: string;
+}
 
-export interface Property {
-  id: string;
-  title: string;
-  description: string | null;
-  property_type: string; // Made more flexible to handle any property type
-  listing_type: 'sale' | 'rent';
-  status: 'for_sale' | 'for_rent' | 'sold' | 'rented' | 'off_market';
-  price: number;
-  bedrooms: number | null;
-  bathrooms: number | null;
-  area_sqm: number | null;
-  address: string;
-  city: string;
-  state: string;
-  country: string | null;
-  featured: boolean | null;
-  verified: boolean | null;
-  images: string[] | null;
-  amenities: string[] | null;
-  year_built: number | null;
-  parking_spaces: number | null;
-  furnishing_status: string | null;
-  views_count: number | null;
-  created_at: string;
-  agent_id: string | null;
+interface PropertyWithAgent extends Property {
   real_estate_agents?: {
-    id?: string;
-    name?: string;
+    id: string;
     agency_name: string | null;
     phone: string | null;
-    email?: string | null;
     rating: number | null;
-    profile_image_url?: string | null;
+    profile_image_url: string | null;
   } | null;
 }
 
-interface UsePropertiesOptions {
-  city?: string;
-  propertyType?: string;
-  priceRange?: string;
-  searchTerm?: string;
-}
+export const useProperties = (filters?: PropertyFilters) => {
+  const [properties, setProperties] = useState<PropertyWithAgent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
 
-const validPropertyTypes = ['apartment', 'house', 'duplex', 'penthouse', 'land', 'commercial', 'office'] as const;
+  useEffect(() => {
+    fetchProperties();
+  }, [filters]);
 
-export const useProperties = (options: UsePropertiesOptions = {}) => {
-  return useQuery({
-    queryKey: ['properties', options],
-    queryFn: async () => {
-      console.log('Fetching properties with options:', options);
-      
+  const fetchProperties = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
       let query = supabase
         .from('properties')
         .select(`
           *,
           real_estate_agents (
+            id,
             agency_name,
             phone,
-            rating
+            rating,
+            profile_image_url
           )
-        `)
-        .eq('status', 'for_sale')
+        `, { count: 'exact' })
         .order('created_at', { ascending: false });
 
       // Apply filters
-      if (options.city) {
-        query = query.ilike('city', `%${options.city}%`);
+      if (filters?.city) {
+        query = query.ilike('city', `%${filters.city}%`);
+      }
+      if (filters?.state) {
+        query = query.ilike('state', `%${filters.state}%`);
+      }
+      if (filters?.property_type) {
+        query = query.eq('property_type', filters.property_type);
+      }
+      if (filters?.listing_type) {
+        query = query.eq('listing_type', filters.listing_type);
+      }
+      if (filters?.status) {
+        query = query.eq('status', filters.status);
+      }
+      if (filters?.min_price) {
+        query = query.gte('price', filters.min_price);
+      }
+      if (filters?.max_price) {
+        query = query.lte('price', filters.max_price);
+      }
+      if (filters?.bedrooms) {
+        query = query.eq('bedrooms', filters.bedrooms);
+      }
+      if (filters?.bathrooms) {
+        query = query.eq('bathrooms', filters.bathrooms);
+      }
+      if (filters?.featured !== undefined) {
+        query = query.eq('featured', filters.featured);
+      }
+      if (filters?.search) {
+        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%,address.ilike.%${filters.search}%`);
       }
 
-      if (options.propertyType && validPropertyTypes.includes(options.propertyType as any)) {
-        query = query.eq('property_type', options.propertyType as typeof validPropertyTypes[number]);
-      }
-
-      if (options.searchTerm) {
-        query = query.or(`title.ilike.%${options.searchTerm}%,address.ilike.%${options.searchTerm}%,city.ilike.%${options.searchTerm}%`);
-      }
-
-      // Apply price range filter
-      if (options.priceRange) {
-        switch (options.priceRange) {
-          case 'under-5m':
-            query = query.lt('price', 5000000);
-            break;
-          case '5m-20m':
-            query = query.gte('price', 5000000).lte('price', 20000000);
-            break;
-          case '20m-50m':
-            query = query.gte('price', 20000000).lte('price', 50000000);
-            break;
-          case 'above-50m':
-            query = query.gt('price', 50000000);
-            break;
-        }
-      }
-
-      const { data, error } = await query;
+      const { data, error, count } = await query;
 
       if (error) {
-        console.error('Error fetching properties:', error);
         throw error;
       }
 
-      console.log('Fetched properties:', data);
-      return data as Property[];
-    },
-  });
-};
-// Hook to fetch a single property by ID
-export const useProperty = (id: string) => {
-  return useQuery({
-    queryKey: ['property', id],
-    queryFn: async () => {
-      console.log('Fetching property with ID:', id);
-      
-      // First try with agent relationship, fallback to basic query if it fails
-      let data, error;
-      
-      try {
-        const result = await supabase
-          .from('properties')
-          .select(`
-            *,
-            real_estate_agents (
-              id,
-              name,
-              agency_name,
-              phone,
-              email,
-              rating,
-              profile_image_url
-            )
-          `)
-          .eq('id', id)
-          .single();
-        
-        data = result.data;
-        error = result.error;
-      } catch (relationError) {
-        console.warn('Failed to fetch with agent relation, trying basic query:', relationError);
-        
-        // Fallback to basic query without agent relationship
-        const result = await supabase
-          .from('properties')
-          .select('*')
-          .eq('id', id)
-          .single();
-        
-        data = result.data;
-        error = result.error;
-      }
+      setProperties(data || []);
+      setTotalCount(count || 0);
+    } catch (err: any) {
+      console.error('Error fetching properties:', err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getPropertyById = async (id: string): Promise<PropertyWithAgent | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select(`
+          *,
+          real_estate_agents (
+            id,
+            agency_name,
+            phone,
+            rating,
+            profile_image_url,
+            bio,
+            years_experience,
+            specializations
+          )
+        `)
+        .eq('id', id)
+        .single();
 
       if (error) {
-        console.error('Error fetching property:', error);
         throw error;
       }
 
-      console.log('Fetched property:', data);
-      return data as Property & {
-        real_estate_agents: {
-          id: string;
-          name: string;
-          agency_name: string | null;
-          phone: string | null;
-          email: string | null;
-          rating: number | null;
-          profile_image_url: string | null;
-        } | null;
-      };
-    },
-    enabled: !!id, // Only run query if ID is provided
-  });
+      // Increment view count
+      await supabase
+        .from('properties')
+        .update({ views_count: (data.views_count || 0) + 1 })
+        .eq('id', id);
+
+      return data;
+    } catch (err: any) {
+      console.error('Error fetching property:', err);
+      return null;
+    }
+  };
+
+  const getFeaturedProperties = async (limit: number = 6): Promise<PropertyWithAgent[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select(`
+          *,
+          real_estate_agents (
+            id,
+            agency_name,
+            phone,
+            rating,
+            profile_image_url
+          )
+        `)
+        .eq('featured', true)
+        .in('status', ['for_sale', 'for_rent'])
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    } catch (err: any) {
+      console.error('Error fetching featured properties:', err);
+      return [];
+    }
+  };
+
+  const getPropertiesByAgent = async (agentId: string): Promise<PropertyWithAgent[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select(`
+          *,
+          real_estate_agents (
+            id,
+            agency_name,
+            phone,
+            rating,
+            profile_image_url
+          )
+        `)
+        .eq('agent_id', agentId)
+        .in('status', ['for_sale', 'for_rent'])
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    } catch (err: any) {
+      console.error('Error fetching agent properties:', err);
+      return [];
+    }
+  };
+
+  const searchProperties = async (searchTerm: string, filters?: PropertyFilters): Promise<PropertyWithAgent[]> => {
+    try {
+      let query = supabase
+        .from('properties')
+        .select(`
+          *,
+          real_estate_agents (
+            id,
+            agency_name,
+            phone,
+            rating,
+            profile_image_url
+          )
+        `)
+        .or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%,city.ilike.%${searchTerm}%`)
+        .in('status', ['for_sale', 'for_rent']);
+
+      // Apply additional filters
+      if (filters?.property_type) {
+        query = query.eq('property_type', filters.property_type);
+      }
+      if (filters?.listing_type) {
+        query = query.eq('listing_type', filters.listing_type);
+      }
+      if (filters?.min_price) {
+        query = query.gte('price', filters.min_price);
+      }
+      if (filters?.max_price) {
+        query = query.lte('price', filters.max_price);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    } catch (err: any) {
+      console.error('Error searching properties:', err);
+      return [];
+    }
+  };
+
+  return {
+    properties,
+    isLoading,
+    error,
+    totalCount,
+    refetch: fetchProperties,
+    getPropertyById,
+    getFeaturedProperties,
+    getPropertiesByAgent,
+    searchProperties,
+  };
 };

@@ -26,7 +26,7 @@ const CompactPropertyCard = ({ property, showSaveButton = true }: CompactPropert
   const primaryImage = property.images && property.images.length > 0 ? property.images[0] : '/placeholder.svg';
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer overflow-hidden">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer overflow-hidden h-full flex flex-col">
       <Link to={`/properties/${property.id}`}>
         {/* Image Container */}
         <div className="relative overflow-hidden rounded-t-xl">
@@ -65,40 +65,44 @@ const CompactPropertyCard = ({ property, showSaveButton = true }: CompactPropert
         </div>
         
         {/* Content */}
-        <div className="p-3">
-          {/* Price */}
-          <div className="text-lg font-bold text-gray-900 mb-1">
-            {formatPrice(property.price)}
+        <div className="p-3 flex-1 flex flex-col justify-between">
+          <div className="flex-1">
+            {/* Price */}
+            <div className="text-lg font-bold text-gray-900 mb-1">
+              {formatPrice(property.price)}
+            </div>
+            
+            {/* Property Features */}
+            <div className="flex items-center space-x-3 text-sm text-gray-600 mb-2">
+              <div className="flex items-center">
+                <Bed className="h-3 w-3 mr-1" />
+                <span>{property.bedrooms || 'N/A'}</span>
+              </div>
+              <div className="flex items-center">
+                <Bath className="h-3 w-3 mr-1" />
+                <span>{property.bathrooms || 'N/A'}</span>
+              </div>
+              <div className="flex items-center">
+                <Square className="h-3 w-3 mr-1" />
+                <span>{formatArea(property.area_sqm)}</span>
+              </div>
+            </div>
+            
+            {/* Location */}
+            <div className="flex items-center text-gray-600 mb-2">
+              <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="text-sm truncate">
+                {property.address}, {property.city}
+              </span>
+            </div>
           </div>
           
-          {/* Property Features */}
-          <div className="flex items-center space-x-3 text-sm text-gray-600 mb-2">
-            <div className="flex items-center">
-              <Bed className="h-3 w-3 mr-1" />
-              <span>{property.bedrooms || 'N/A'}</span>
-            </div>
-            <div className="flex items-center">
-              <Bath className="h-3 w-3 mr-1" />
-              <span>{property.bathrooms || 'N/A'}</span>
-            </div>
-            <div className="flex items-center">
-              <Square className="h-3 w-3 mr-1" />
-              <span>{formatArea(property.area_sqm)}</span>
-            </div>
+          {/* Title - Fixed at bottom */}
+          <div className="mt-auto">
+            <h3 className="text-sm font-medium text-gray-900 group-hover:text-blue-700 transition-colors duration-150 line-clamp-1 leading-tight h-5 overflow-hidden">
+              {property.title}
+            </h3>
           </div>
-          
-          {/* Location */}
-          <div className="flex items-center text-gray-600 mb-2">
-            <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-            <span className="text-sm truncate">
-              {property.address}, {property.city}
-            </span>
-          </div>
-          
-          {/* Title */}
-          <h3 className="text-sm font-medium text-gray-900 group-hover:text-blue-700 transition-colors duration-150 line-clamp-2 leading-tight">
-            {property.title}
-          </h3>
         </div>
       </Link>
     </div>

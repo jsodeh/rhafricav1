@@ -75,6 +75,7 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
 
   const generateTasks = (profileData: any) => {
     const userType = user?.accountType?.toLowerCase() || 'buyer';
+    console.log('Generating tasks for user type:', userType, 'Profile data:', profileData);
     
     const allTasks: ProfileTask[] = [
       // Basic Profile Tasks (All Users)
@@ -83,7 +84,7 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
         title: 'Complete basic information',
         description: 'Add your full name, phone number, and location',
         priority: 'high',
-        completed: !!(profileData?.full_name && profileData?.phone && profileData?.location),
+        completed: !!(user?.name && user?.phone && profileData?.location),
         required: true,
         userTypes: ['all'],
         icon: <User className="w-4 h-4" />,
@@ -95,7 +96,7 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
         title: 'Upload profile picture',
         description: 'Add a profile picture to make your account more personal',
         priority: 'medium',
-        completed: !!profileData?.avatar_url,
+        completed: !!(user?.profilePhoto || profileData?.avatar_url),
         required: false,
         userTypes: ['all'],
         icon: <Camera className="w-4 h-4" />,
@@ -193,6 +194,34 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
         icon: <MapPin className="w-4 h-4" />,
         action: 'Set preferences',
         onClick: () => window.location.href = '/profile/preferences'
+      },
+
+      // Email Verification (always show if not verified)
+      {
+        id: 'email_verification',
+        title: 'Verify your email address',
+        description: 'Confirm your email to secure your account',
+        priority: 'high',
+        completed: !!(user?.emailVerified),
+        required: true,
+        userTypes: ['all'],
+        icon: <Shield className="w-4 h-4" />,
+        action: 'Verify email',
+        onClick: () => window.location.href = '/profile/verify-email'
+      },
+
+      // Account Security
+      {
+        id: 'account_security',
+        title: 'Secure your account',
+        description: 'Add additional security measures to protect your account',
+        priority: 'medium',
+        completed: false, // This could check for 2FA, strong password, etc.
+        required: false,
+        userTypes: ['all'],
+        icon: <Shield className="w-4 h-4" />,
+        action: 'Enhance security',
+        onClick: () => window.location.href = '/profile/security'
       }
     ];
 
@@ -203,6 +232,8 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
       task.userTypes.some(type => userType.includes(type))
     );
 
+    console.log('Relevant tasks:', relevantTasks.length, 'Completed:', relevantTasks.filter(task => task.completed).length);
+    
     setTasks(relevantTasks);
     setCompletedCount(relevantTasks.filter(task => task.completed).length);
   };
