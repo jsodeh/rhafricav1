@@ -46,6 +46,8 @@ const Services = lazy(() => import("./pages/Services"));
 const ManageRentals = lazy(() => import("./pages/ManageRentals"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const AuthConfirm = lazy(() => import("./pages/AuthConfirm"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 const queryClient = createOptimizedQueryClient();
 
@@ -110,6 +112,8 @@ const App = () => {
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/auth/confirm" element={<AuthConfirm />} />
+              <Route path="/auth/reset-password" element={<ResetPassword />} />
               <Route path="/properties" element={<Properties />} />
               <Route path="/properties/:id" element={<PropertyDetail />} />
               <Route path="/search" element={<SearchResults />} />
