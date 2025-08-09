@@ -478,7 +478,12 @@ const Dashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                ))
+              ) : (
+                <div className="text-center py-4 text-gray-600">
+                  No saved searches yet
+                </div>
+              )}
             </div>
           </TabsContent>
 
