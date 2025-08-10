@@ -12,8 +12,9 @@ import SuperAdminRoute from "@/components/SuperAdminRoute";
 import { WelcomeNotificationProvider } from "./components/WelcomeNotificationProvider";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ToastProvider } from "./components/Toast";
-import AIAssistant from "./components/AIAssistant";
-import LiveChatWidget from "./components/LiveChatWidget";
+// Chat widgets temporarily disabled - will be replaced with real agent system
+// import AIAssistant from "./components/AIAssistant";
+// import LiveChatWidget from "./components/LiveChatWidget";
 import PerformanceMonitor from "./components/PerformanceMonitor";
 import PerformanceOptimizer from "./components/PerformanceOptimizer";
 import { OrganizationSEO } from "./components/SEO";
@@ -185,8 +186,7 @@ const App = () => {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
-            <AIAssistant />
-            <LiveChatWidget />
+            {/* Chat widgets disabled until real agent system is implemented */}
             <PerformanceMonitor />
             <PerformanceOptimizer />
             <OrganizationSEO />

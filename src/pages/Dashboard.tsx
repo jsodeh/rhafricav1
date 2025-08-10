@@ -40,14 +40,30 @@ const Dashboard = () => {
   const { showError } = useToast();
   const navigate = useNavigate();
 
-  // Show profile setup on first visit or if profile is incomplete
+  // Show profile setup for new users or incomplete profiles
   useEffect(() => {
-    const hasSeenSetup = localStorage.getItem('hasSeenProfileSetup');
-    if (!hasSeenSetup && user) {
-      setShowProfileSetup(true);
-      localStorage.setItem('hasSeenProfileSetup', 'true');
+    if (user && !profileLoading) {
+      console.log('Dashboard: Checking profile setup needs', {
+        user: user.email,
+        profile: profile,
+        emailVerified: user.emailVerified,
+        accountType: user.accountType
+      });
+
+      // Check if user needs to complete profile setup
+      const needsSetup = !profile || 
+                        !profile.full_name || 
+                        !profile.phone || 
+                        !user.emailVerified ||
+                        (user.accountType?.toLowerCase().includes('agent') && !profile.verification_status);
+      
+      console.log('Dashboard: Needs setup?', needsSetup);
+      
+      if (needsSetup) {
+        setShowProfileSetup(true);
+      }
     }
-  }, [user]);
+  }, [user, profile, profileLoading]);
 
   // Handle errors with user-friendly messages
   useEffect(() => {
@@ -112,7 +128,7 @@ const Dashboard = () => {
               onClick={() => setShowProfileSetup(true)}
             >
               <User className="h-4 w-4" />
-              Setup Profile
+              {profile?.full_name ? 'Update Profile' : 'Complete Profile'}
             </Button>
             <Button variant="outline" className="flex items-center gap-2">
               <Bell className="h-4 w-4" />

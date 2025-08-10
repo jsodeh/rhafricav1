@@ -136,16 +136,8 @@ const PropertyDetail = () => {
     furnishing_status: "Furnished",
     views_count: 150,
     created_at: new Date().toISOString(),
-    agent_id: "1",
-    real_estate_agents: {
-      id: "1",
-      name: "Sarah Johnson",
-      agency_name: "Real Estate Hotspot",
-      phone: "+234 801 234 5678",
-      email: "sarah@realestatehotspot.com",
-      profile_image_url: "/placeholder.svg",
-      rating: 4.8
-    }
+    agent_id: null,
+    real_estate_agents: null
   };
   
   // Use fetched property or fallback to sample
@@ -208,11 +200,11 @@ const PropertyDetail = () => {
   ];
 
   const agent = property.real_estate_agents || {
-    id: "1",
-    name: "Real Estate Agent",
+    id: "no-agent",
+    name: "Real Estate Hotspot",
     agency_name: "Real Estate Hotspot",
-    phone: "+234 801 234 5678",
-    email: "agent@realestatehotspot.com",
+    phone: "+234 800 HOTSPOT",
+    email: "info@realestatehotspot.com",
     profile_image_url: "/placeholder.svg",
     rating: 4.5
   };
