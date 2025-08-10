@@ -44,6 +44,7 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
   const [completedCount, setCompletedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [activeEditor, setActiveEditor] = useState<null | 'basic_info' | 'profile_photo' | 'location_setup'>(null);
+  const [step, setStep] = useState<number>(1);
   const [editFullName, setEditFullName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editLocation, setEditLocation] = useState('');
@@ -329,6 +330,8 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
       if (error) throw error;
       await fetchUserProfile();
       setActiveEditor(null);
+      // advance step when saving from inline editor
+      setStep((s) => Math.min(s + 1, 3));
     } catch (e) {
       console.error('Failed to save profile edits', e);
     } finally {
@@ -341,8 +344,8 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
   const otherTasks = tasks.filter(task => task.priority !== 'high' || task.completed);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-3xl max-h-[92vh] overflow-hidden">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -350,7 +353,7 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
                 <User className="w-4 h-4 text-purple-600" />
               </div>
               <div>
-                <CardTitle className="text-lg">Setup Progress</CardTitle>
+                <CardTitle className="text-xl">Setup Progress</CardTitle>
                 <p className="text-sm text-gray-600">
                   {completedCount} of {tasks.length} completed
                 </p>
@@ -364,6 +367,12 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
             </div>
           </div>
           <Progress value={getProgressPercentage()} className="mt-2" />
+          {/* Multi-step indicator */}
+          <div className="mt-3 flex items-center gap-2 text-sm">
+            <span className={`px-2 py-1 rounded ${step === 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>1. Basic</span>
+            <span className={`px-2 py-1 rounded ${step === 2 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>2. Photo & Location</span>
+            <span className={`px-2 py-1 rounded ${step === 3 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>3. Verify</span>
+          </div>
           
           {/* Account Status */}
           <div className={`flex items-center space-x-2 mt-2 ${accountStatus.color}`}>
@@ -372,7 +381,7 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
           </div>
         </CardHeader>
 
-        <CardContent className="overflow-y-auto max-h-96">
+        <CardContent className="overflow-y-auto max-h-[65vh]">
           {activeEditor && (
             <div className="mb-4 p-4 border rounded-lg bg-gray-50">
               {activeEditor === 'basic_info' && (
@@ -431,37 +440,42 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Priority Tasks */}
-              {priorityTasks.length > 0 && (
-                <div>
-                  <div className="flex items-center space-x-2 mb-3">
-                    <AlertTriangle className="w-4 h-4 text-red-500" />
-                    <h3 className="font-medium text-sm">Priority Tasks</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {priorityTasks.map((task) => (
-                      <TaskItem key={task.id} task={task} />
-                    ))}
+              {/* Step 1: Basic info */}
+              {step === 1 && (
+                <div className="space-y-3">
+                  <h3 className="font-medium text-sm">Step 1: Basic details</h3>
+                  <TaskItem key={'basic_info'} task={tasks.find(t=>t.id==='basic_info')!} />
+                  <div className="flex justify-end">
+                    <Button onClick={() => setStep(2)} disabled={!tasks.find(t=>t.id==='basic_info') || !tasks.find(t=>t.id==='basic_info')!.completed}>Continue</Button>
                   </div>
                 </div>
               )}
-
-              {/* Other Tasks */}
-              {otherTasks.length > 0 && (
+              {/* Step 2: Photo & location */}
+              {step === 2 && (
                 <div>
-                  <h3 className="font-medium text-sm mb-3">Other Tasks</h3>
-                  <div className="space-y-3">
-                    {otherTasks.map((task) => (
-                      <TaskItem key={task.id} task={task} />
-                    ))}
+                  <h3 className="font-medium text-sm mb-3">Step 2: Photo & Location</h3>
+                  {['profile_photo','location_setup'].map(id => {
+                    const t = tasks.find(t=>t.id===id);
+                    return t ? <TaskItem key={t.id} task={t} /> : null;
+                  })}
+                  <div className="flex justify-between">
+                    <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+                    <Button onClick={() => setStep(3)}>Continue</Button>
                   </div>
                 </div>
               )}
-
-              {tasks.length === 0 && (
-                <div className="text-center py-8">
-                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">All setup tasks completed!</p>
+              {/* Step 3: Verify */}
+              {step === 3 && (
+                <div className="space-y-3">
+                  <h3 className="font-medium text-sm">Step 3: Verify & Security</h3>
+                  {['email_verification','account_security'].map(id => {
+                    const t = tasks.find(t=>t.id===id);
+                    return t ? <TaskItem key={t.id} task={t} /> : null;
+                  })}
+                  <div className="flex justify-between">
+                    <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+                    <Button onClick={onClose}>Finish</Button>
+                  </div>
                 </div>
               )}
             </div>
