@@ -50,10 +50,14 @@ export const useProperties = (filters?: PropertyFilters) => {
             agency_name,
             phone,
             rating,
-            profile_image_url
+            profile_image_url,
+            verification_status
           )
         `, { count: 'exact' })
         .order('created_at', { ascending: false });
+
+      // Only show properties from verified agents or direct owners
+      query = query.or('agent_id.is.null,real_estate_agents.verification_status.eq.verified');
 
       // Apply filters
       if (filters?.city) {

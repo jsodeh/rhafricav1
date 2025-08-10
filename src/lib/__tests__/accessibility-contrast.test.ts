@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { 
-  hexToRgb, 
-  getLuminance, 
-  getContrastRatio, 
+import {
+  hexToRgb,
+  getLuminance,
+  getContrastRatio,
   checkContrastCompliance,
   accessibleColors,
   getAccessibleColor,
@@ -92,7 +92,7 @@ describe('Color Contrast Utilities', () => {
     it('should have different standards for large text', () => {
       const normalText = checkContrastCompliance('#6b7280', '#ffffff', false); // gray-500
       const largeText = checkContrastCompliance('#6b7280', '#ffffff', true);
-      
+
       expect(normalText.level).toBe('AA'); // gray-500 actually passes AA
       expect(largeText.level).toBe('AAA'); // Large text gets AAA for gray-500
     });
@@ -113,7 +113,7 @@ describe('Color Contrast Utilities', () => {
       const successContrast = getContrastRatio(accessibleColors.success[600], '#ffffff');
       const warningContrast = getContrastRatio(accessibleColors.warning[600], '#ffffff');
       const errorContrast = getContrastRatio(accessibleColors.error[600], '#ffffff');
-      
+
       expect(successContrast).toBeGreaterThan(4.5);
       expect(warningContrast).toBeGreaterThan(4.5);
       expect(errorContrast).toBeGreaterThan(4.5);
@@ -125,7 +125,7 @@ describe('Color Contrast Utilities', () => {
       const primaryColor = getAccessibleColor('primary');
       const successColor = getAccessibleColor('success');
       const errorColor = getAccessibleColor('error');
-      
+
       expect(primaryColor).toBe(accessibleColors.primary[700]);
       expect(successColor).toBe(accessibleColors.success[700]);
       expect(errorColor).toBe(accessibleColors.error[700]);
@@ -134,7 +134,7 @@ describe('Color Contrast Utilities', () => {
     it('should return lighter colors for large text', () => {
       const normalText = getAccessibleColor('primary', 'foreground', false);
       const largeText = getAccessibleColor('primary', 'foreground', true);
-      
+
       expect(normalText).toBe(accessibleColors.primary[700]);
       expect(largeText).toBe(accessibleColors.primary[600]);
     });

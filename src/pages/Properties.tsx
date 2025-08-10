@@ -53,17 +53,21 @@ const Properties = () => {
   const propertiesWithCoordinates = properties?.map((property, index) => ({
     ...property,
     coordinates: {
-      // Generate realistic coordinates for Nigerian cities
-      lat: property.city === 'Lagos' ? 6.5244 + (Math.random() - 0.5) * 0.1 :
-           property.city === 'Abuja' ? 9.0579 + (Math.random() - 0.5) * 0.1 :
-           property.city === 'Port Harcourt' ? 4.8156 + (Math.random() - 0.5) * 0.1 :
-           property.city === 'Kano' ? 12.0022 + (Math.random() - 0.5) * 0.1 :
-           6.5244 + (Math.random() - 0.5) * 0.1,
-      lng: property.city === 'Lagos' ? 3.3792 + (Math.random() - 0.5) * 0.1 :
-           property.city === 'Abuja' ? 7.4951 + (Math.random() - 0.5) * 0.1 :
-           property.city === 'Port Harcourt' ? 7.0498 + (Math.random() - 0.5) * 0.1 :
-           property.city === 'Kano' ? 8.5920 + (Math.random() - 0.5) * 0.1 :
-           3.3792 + (Math.random() - 0.5) * 0.1,
+      // Use real coordinates if available, otherwise fallback to city-based coordinates
+      lat: property.latitude || (
+        property.city === 'Lagos' ? 6.5244 + (Math.random() - 0.5) * 0.1 :
+        property.city === 'Abuja' ? 9.0579 + (Math.random() - 0.5) * 0.1 :
+        property.city === 'Port Harcourt' ? 4.8156 + (Math.random() - 0.5) * 0.1 :
+        property.city === 'Kano' ? 12.0022 + (Math.random() - 0.5) * 0.1 :
+        6.5244 + (Math.random() - 0.5) * 0.1
+      ),
+      lng: property.longitude || (
+        property.city === 'Lagos' ? 3.3792 + (Math.random() - 0.5) * 0.1 :
+        property.city === 'Abuja' ? 7.4951 + (Math.random() - 0.5) * 0.1 :
+        property.city === 'Port Harcourt' ? 7.0498 + (Math.random() - 0.5) * 0.1 :
+        property.city === 'Kano' ? 8.5920 + (Math.random() - 0.5) * 0.1 :
+        3.3792 + (Math.random() - 0.5) * 0.1
+      ),
     }
   })) || [];
 

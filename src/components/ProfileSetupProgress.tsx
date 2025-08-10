@@ -73,73 +73,89 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
     }
   };
 
-  const generateTasks = (profileData: any) => {
+  const generateTasks = async (profileData: any) => {
     const userType = user?.accountType?.toLowerCase() || 'buyer';
     console.log('Generating tasks for user type:', userType, 'Profile data:', profileData);
     
+    // Check agent verification status if user is an agent
+    let agentData = null;
+    if (userType === 'agent') {
+      const { data } = await supabase
+        .from('real_estate_agents')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single();
+      agentData = data;
+    }
+    
     const allTasks: ProfileTask[] = [
-      // Basic Profile Tasks (All Users)
+      // Basic Profile Tasks (All Users except admin/super_admin)
       {
         id: 'basic_info',
         title: 'Complete basic information',
         description: 'Add your full name, phone number, and location',
         priority: 'high',
-        completed: !!(user?.name && user?.phone && profileData?.location),
+        completed: !!(profileData?.full_name && profileData?.phone && profileData?.location),
         required: true,
-        userTypes: ['all'],
+        userTypes: ['buyer', 'agent', 'owner'],
         icon: <User className="w-4 h-4" />,
         action: 'Complete profile',
-        onClick: () => window.location.href = '/profile/edit'
+        onClick: () => window.location.href = '/onboarding'
       },
       {
         id: 'profile_photo',
         title: 'Upload profile picture',
         description: 'Add a profile picture to make your account more personal',
         priority: 'medium',
-        completed: !!(user?.profilePhoto || profileData?.avatar_url),
+        completed: !!(profileData?.avatar_url),
         required: false,
-        userTypes: ['all'],
+        userTypes: ['buyer', 'agent', 'owner'],
         icon: <Camera className="w-4 h-4" />,
         action: 'Upload photo',
-        onClick: () => window.location.href = '/profile/photo'
+        onClick: () => window.location.href = '/dashboard'
       },
       {
         id: 'location_setup',
         title: 'Set your location preferences',
         description: 'Help us show you relevant properties in your area',
         priority: 'medium',
-        completed: !!(profileData?.preferences?.location || profileData?.location),
+        completed: !!(profileData?.location),
         required: false,
-        userTypes: ['buyer', 'renter'],
+        userTypes: ['buyer'],
         icon: <MapPin className="w-4 h-4" />,
         action: 'Set location',
-        onClick: () => window.location.href = '/profile/preferences'
+        onClick: () => window.location.href = '/dashboard'
       },
 
       // Agent-Specific Tasks
       {
-        id: 'agent_verification',
-        title: 'Submit agent verification',
-        description: 'Upload your real estate license and business documents',
-        priority: 'high',
-        completed: false, // Will be checked against agent table
-        required: true,
-        userTypes: ['agent'],
-        icon: <Shield className="w-4 h-4" />,
-        action: 'Submit documents',
-        onClick: () => window.location.href = '/agent/verification'
-      },
-      {
         id: 'agent_profile',
         title: 'Complete agent profile',
-        description: 'Add your agency details, specializations, and experience',
+        description: 'Add your agency details, license, and experience',
         priority: 'high',
-        completed: false,
+        completed: !!(agentData?.agency_name && agentData?.license_number),
         required: true,
         userTypes: ['agent'],
         icon: <FileText className="w-4 h-4" />,
         action: 'Complete profile',
-        onClick: () => window.location.href = '/agent/profile'
+        onClick: () => window.location.href = '/agent-dashboard'
+      },
+      {
+        id: 'agent_verification',
+        title: 'Agent verification status',
+        description: agentData?.verification_status === 'verified' ? 'Your agent account is verified!' : 
+                    agentData?.verification_status === 'rejected' ? 'Verification rejected - contact support' :
+                    'Waiting for admin verification',
+        priority: 'high',
+        completed: agentData?.verification_status === 'verified',
+        required: true,
+        userTypes: ['agent'],
+        icon: agentData?.verification_status === 'verified' ? <CheckCircle className="w-4 h-4" /> : 
+              agentData?.verification_status === 'rejected' ? <X className="w-4 h-4" /> :
+              <Clock className="w-4 h-4" />,
+        action: agentData?.verification_status === 'verified' ? 'Verified' : 
+               agentData?.verification_status === 'rejected' ? 'Contact support' : 'Pending',
+        onClick: () => window.location.href = '/agent-dashboard'
       },
 
       // Owner/Landlord Tasks

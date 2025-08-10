@@ -53,6 +53,10 @@ const StickyNavigation = ({
   const roleLinks = [
     getPrimaryDashboardLink(),
     { label: "Messages", to: "/messages" },
+    // Add Super Admin link for admin users
+    ...(user?.accountType?.toLowerCase().includes('admin') ? [
+      { label: "Super Admin", to: "/super-admin" }
+    ] : [])
   ].filter(Boolean);
 
   // Filter rightMenu for 'Manage Rentals' based on user role

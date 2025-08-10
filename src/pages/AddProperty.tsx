@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import MapboxLocationPicker from '@/components/MapboxLocationPicker';
 import { 
   MapPin, 
   Home, 
@@ -40,6 +41,10 @@ interface PropertyFormData {
   furnishing_status: string;
   amenities: string[];
   images: File[];
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 const AddProperty = () => {
@@ -186,6 +191,36 @@ const AddProperty = () => {
       return;
     }
 
+    // Check if user is an agent and if they're verified
+    let agentId = null;
+    if (user.accountType === 'agent') {
+      const { data: agentData, error: agentError } = await supabase
+        .from('real_estate_agents')
+        .select('id, verification_status')
+        .eq('user_id', user.id)
+        .single();
+
+      if (agentError || !agentData) {
+        toast({
+          title: "Agent Profile Required",
+          description: "Please complete your agent profile first.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (agentData.verification_status !== 'verified') {
+        toast({
+          title: "Verification Required",
+          description: "Your agent account must be verified before you can list properties. Please wait for admin approval.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      agentId = agentData.id;
+    }
+
     setIsLoading(true);
 
     try {
@@ -222,12 +257,15 @@ const AddProperty = () => {
         address: formData.address,
         city: formData.city,
         state: formData.state,
+        latitude: formData.coordinates?.lat || null,
+        longitude: formData.coordinates?.lng || null,
         year_built: formData.year_built ? parseInt(formData.year_built) : null,
         parking_spaces: formData.parking_spaces ? parseInt(formData.parking_spaces) : 0,
         furnishing_status: formData.furnishing_status || null,
         amenities: formData.amenities,
         images: imageUrls,
         owner_id: user.id,
+        agent_id: agentId, // Set agent_id if user is a verified agent
         featured: false,
         verified: false,
         seo_slug: formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
@@ -375,44 +413,66 @@ const AddProperty = () => {
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="address" className="text-base font-medium">Address *</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                placeholder="e.g., 15 Ahmadu Bello Way"
-                className="mt-2"
-                required
-              />
-            </div>
+            {/* Mapbox Location Picker */}
+            <MapboxLocationPicker
+              onLocationSelect={(location) => {
+                setFormData(prev => ({
+                  ...prev,
+                  address: location.address,
+                  city: location.city,
+                  state: location.state,
+                  coordinates: location.coordinates
+                }));
+              }}
+              initialLocation={formData.coordinates ? {
+                address: formData.address,
+                city: formData.city,
+                state: formData.state,
+                coordinates: formData.coordinates
+              } : undefined}
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Manual Address Input (fallback) */}
+            <div className="space-y-4">
               <div>
-                <Label htmlFor="city" className="text-base font-medium">City *</Label>
+                <Label htmlFor="address" className="text-base font-medium">Address *</Label>
                 <Input
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                  placeholder="e.g., Lagos"
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  placeholder="e.g., 15 Ahmadu Bello Way"
                   className="mt-2"
                   required
                 />
               </div>
-              <div>
-                <Label htmlFor="state" className="text-base font-medium">State *</Label>
-                <select
-                  id="state"
-                  value={formData.state}
-                  onChange={(e) => handleInputChange('state', e.target.value)}
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Select State</option>
-                  {nigerianStates.map((state) => (
-                    <option key={state} value={state}>{state}</option>
-                  ))}
-                </select>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="city" className="text-base font-medium">City *</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => handleInputChange('city', e.target.value)}
+                    placeholder="e.g., Lagos"
+                    className="mt-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="state" className="text-base font-medium">State *</Label>
+                  <select
+                    id="state"
+                    value={formData.state}
+                    onChange={(e) => handleInputChange('state', e.target.value)}
+                    className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Select State</option>
+                    {nigerianStates.map((state) => (
+                      <option key={state} value={state}>{state}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>

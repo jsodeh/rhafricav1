@@ -8,6 +8,7 @@ import { SearchProvider } from "@/contexts/SearchContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import { ProtectedRoute, AdminRoute, AgentRoute, OwnerRoute, ProfessionalRoute, AuthRoute } from "@/components/ProtectedRoute";
+import SuperAdminRoute from "@/components/SuperAdminRoute";
 import { WelcomeNotificationProvider } from "./components/WelcomeNotificationProvider";
 import { ErrorBoundary, CriticalErrorBoundary } from "./components/ErrorBoundary";
 import ErrorNotificationSystem from "./components/ErrorNotificationSystem";
@@ -49,6 +50,7 @@ const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AuthConfirm = lazy(() => import("./pages/AuthConfirm"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const AddProperty = lazy(() => import("./pages/AddProperty"));
+const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
 
 const queryClient = createOptimizedQueryClient();
 
@@ -161,6 +163,11 @@ const App = () => {
                 <AdminRoute>
                   <AdminDashboard />
                 </AdminRoute>
+              } />
+              <Route path="/super-admin" element={
+                <SuperAdminRoute>
+                  <SuperAdminDashboard />
+                </SuperAdminRoute>
               } />
               <Route path="/messages" element={
                 <AuthRoute>
