@@ -42,7 +42,7 @@ export const useProperties = (filters?: PropertyFilters) => {
       setIsLoading(true);
       setError(null);
 
-      let query = supabase
+      let baseQuery = supabase
         .from('properties')
         .select(`
           *,
@@ -57,45 +57,62 @@ export const useProperties = (filters?: PropertyFilters) => {
         `, { count: 'exact' })
         .order('created_at', { ascending: false });
 
-      // Only show properties from verified agents or direct owners
-      query = query.or('agent_id.is.null,real_estate_agents.verification_status.eq.verified');
+      // Build filters onto a query
+      const applyFilters = (q: any) => {
+        let query = q;
+        // Apply filters
+        if (filters?.city) {
+          query = query.ilike('city', `%${filters.city}%`);
+        }
+        if (filters?.state) {
+          query = query.ilike('state', `%${filters.state}%`);
+        }
+        if (filters?.property_type) {
+          query = query.eq('property_type', filters.property_type);
+        }
+        if (filters?.listing_type) {
+          query = query.eq('listing_type', filters.listing_type);
+        }
+        if (filters?.status) {
+          query = query.eq('status', filters.status);
+        }
+        if (filters?.min_price) {
+          query = query.gte('price', filters.min_price);
+        }
+        if (filters?.max_price) {
+          query = query.lte('price', filters.max_price);
+        }
+        if (filters?.bedrooms) {
+          query = query.eq('bedrooms', filters.bedrooms);
+        }
+        if (filters?.bathrooms) {
+          query = query.eq('bathrooms', filters.bathrooms);
+        }
+        if (filters?.featured !== undefined) {
+          query = query.eq('featured', filters.featured);
+        }
+        if (filters?.search) {
+          query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%,address.ilike.%${filters.search}%`);
+        }
+        return query;
+      };
 
-      // Apply filters
-      if (filters?.city) {
-        query = query.ilike('city', `%${filters.city}%`);
-      }
-      if (filters?.state) {
-        query = query.ilike('state', `%${filters.state}%`);
-      }
-      if (filters?.property_type) {
-        query = query.eq('property_type', filters.property_type);
-      }
-      if (filters?.listing_type) {
-        query = query.eq('listing_type', filters.listing_type);
-      }
-      if (filters?.status) {
-        query = query.eq('status', filters.status);
-      }
-      if (filters?.min_price) {
-        query = query.gte('price', filters.min_price);
-      }
-      if (filters?.max_price) {
-        query = query.lte('price', filters.max_price);
-      }
-      if (filters?.bedrooms) {
-        query = query.eq('bedrooms', filters.bedrooms);
-      }
-      if (filters?.bathrooms) {
-        query = query.eq('bathrooms', filters.bathrooms);
-      }
-      if (filters?.featured !== undefined) {
-        query = query.eq('featured', filters.featured);
-      }
-      if (filters?.search) {
-        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%,address.ilike.%${filters.search}%`);
-      }
+      // Prefer to restrict to direct owners or verified listings if the column exists.
+      // Fallback: if the query errors due to missing column, retry without the OR filter.
+      let queryWithFilter = applyFilters(
+        baseQuery.or('agent_id.is.null,verified.eq.true')
+      );
 
-      const { data, error, count } = await query;
+      let { data, error, count } = await queryWithFilter;
+
+      // If the OR causes an error due to missing column, retry without it
+      if (error && (error.code === '42703' || (error.message && error.message.toLowerCase().includes('verified')))) {
+        const fallbackQuery = applyFilters(baseQuery);
+        const result = await fallbackQuery;
+        data = result.data;
+        error = result.error;
+        count = result.count as any;
+      }
 
       if (error) {
         throw error;

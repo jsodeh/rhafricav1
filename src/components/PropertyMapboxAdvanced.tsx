@@ -166,11 +166,12 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
 
     const loadMapbox = async () => {
       try {
+        // Lazy-load mapbox-gl safely
         // @ts-ignore
         if (typeof window !== 'undefined' && !window.mapboxgl) {
-          const mapboxgl = await import('mapbox-gl');
+          const mod = await import('mapbox-gl');
           // @ts-ignore
-          window.mapboxgl = mapboxgl.default;
+          window.mapboxgl = mod.default || mod;
         }
 
         // @ts-ignore
@@ -218,7 +219,11 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         mapInstanceRef.current = map;
 
         return () => {
-          map.remove();
+          try {
+            map.remove();
+          } catch (e) {
+            // Ignore remove errors
+          }
         };
       } catch (error) {
         console.error('Error loading Mapbox:', error);

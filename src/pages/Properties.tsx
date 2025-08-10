@@ -17,6 +17,7 @@ import { pageConfigs } from "@/lib/seo";
 const Properties = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [propertyType, setPropertyType] = useState("all");
+  const [listingStatus, setListingStatus] = useState<string | undefined>(undefined); // 'for_sale' | 'for_rent'
   const [priceRange, setPriceRange] = useState("all");
   const [location, setLocation] = useState("all");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -29,20 +30,25 @@ const Properties = () => {
   const [showPropertyList, setShowPropertyList] = useState(true);
   const [searchParams] = useSearchParams();
 
-  // Set propertyType from query param on mount and when query changes
+  // Set sale/rent from query param and map to status; also keep legacy type filter for property type
   useEffect(() => {
     const typeParam = searchParams.get("type");
-    if (typeParam && typeParam !== propertyType) {
-      setPropertyType(typeParam);
+    if (typeParam) {
+      const normalized = typeParam.toLowerCase();
+      if (normalized === 'sale') setListingStatus('for_sale');
+      else if (normalized === 'rent') setListingStatus('for_rent');
+    } else {
+      setListingStatus(undefined);
     }
   }, [searchParams]);
 
-  const { data: properties, isLoading, error } = useProperties({
-    searchTerm,
-    propertyType: propertyType === "all" ? undefined : propertyType,
-    priceRange: priceRange === "all" ? undefined : priceRange,
+  const { properties, isLoading, error } = useProperties({
+    search: searchTerm || undefined,
+    property_type: propertyType === "all" ? undefined : (propertyType as any),
+    min_price: priceRange === "all" ? undefined : undefined,
     city: location === "all" ? undefined : location,
-  });
+    status: listingStatus as any,
+  } as any);
 
   const handleSearch = () => {
     // The search will automatically trigger due to the useProperties hook watching the state
