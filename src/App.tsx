@@ -10,8 +10,8 @@ import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import { ProtectedRoute, AdminRoute, AgentRoute, OwnerRoute, ProfessionalRoute, AuthRoute } from "@/components/ProtectedRoute";
 import SuperAdminRoute from "@/components/SuperAdminRoute";
 import { WelcomeNotificationProvider } from "./components/WelcomeNotificationProvider";
-import { ErrorBoundary, CriticalErrorBoundary } from "./components/ErrorBoundary";
-import ErrorNotificationSystem from "./components/ErrorNotificationSystem";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { ToastProvider } from "./components/Toast";
 import AIAssistant from "./components/AIAssistant";
 import LiveChatWidget from "./components/LiveChatWidget";
 import PerformanceMonitor from "./components/PerformanceMonitor";
@@ -97,15 +97,16 @@ const App = () => {
   }, []);
 
   return (
-  <CriticalErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AccessibilityProvider>
-        <AuthProvider>
-          <SearchProvider>
-          <WelcomeNotificationProvider />
-          <Toaster />
-          <Sonner />
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <ToastProvider>
+            <AccessibilityProvider>
+              <AuthProvider>
+                <SearchProvider>
+                  <WelcomeNotificationProvider />
+                  <Toaster />
+                  <Sonner />
           <BrowserRouter>
             <AnalyticsProvider>
             <Suspense fallback={<AccessibleLoadingSpinner />}>
@@ -184,11 +185,6 @@ const App = () => {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
-            <ErrorNotificationSystem
-              maxNotifications={3}
-              autoHideDelay={5000}
-              showLowSeverity={false}
-            />
             <AIAssistant />
             <LiveChatWidget />
             <PerformanceMonitor />
@@ -198,12 +194,13 @@ const App = () => {
             <MonitoringDashboard />
             </AnalyticsProvider>
           </BrowserRouter>
-        </SearchProvider>
-      </AuthProvider>
-      </AccessibilityProvider>
-    </TooltipProvider>
-    </QueryClientProvider>
-  </CriticalErrorBoundary>
+                </SearchProvider>
+              </AuthProvider>
+            </AccessibilityProvider>
+          </ToastProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import StickyNavigation from "@/components/StickyNavigation";
 import ProfileSetupProgress from "@/components/ProfileSetupProgress";
+import ErrorDisplay from "@/components/ErrorDisplay";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useActivity } from "@/hooks/useActivity";
+import { useToast } from "@/components/Toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,19 +20,12 @@ import {
   Bed,
   Bath,
   Square,
-  Calendar,
-  TrendingUp,
-  Eye,
   Share2,
   Trash2,
   Plus,
-  Home,
   User,
-  Mail,
-  Phone,
   Edit,
   CreditCard,
-  Building,
   Filter,
 } from "lucide-react";
 
@@ -40,8 +35,9 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const { user } = useAuth();
-  const { profile, savedProperties, savedSearches, isLoading: profileLoading } = useUserProfile();
-  const { activities, isLoading: activitiesLoading } = useActivity();
+  const { profile, savedProperties, savedSearches, isLoading: profileLoading, error: profileError } = useUserProfile();
+  const { activities, isLoading: activitiesLoading, error: activitiesError } = useActivity();
+  const { showError } = useToast();
   const navigate = useNavigate();
 
   // Show profile setup on first visit or if profile is incomplete
@@ -52,6 +48,22 @@ const Dashboard = () => {
       localStorage.setItem('hasSeenProfileSetup', 'true');
     }
   }, [user]);
+
+  // Handle errors with user-friendly messages
+  useEffect(() => {
+    if (profileError) {
+      showError(profileError, {
+        label: 'Retry',
+        onClick: () => window.location.reload()
+      });
+    }
+  }, [profileError, showError]);
+
+  useEffect(() => {
+    if (activitiesError) {
+      showError(activitiesError);
+    }
+  }, [activitiesError, showError]);
 
   useEffect(() => {
     // Redirect to role-specific dashboard if user type is not buyer/renter
@@ -215,6 +227,12 @@ const Dashboard = () => {
                 <CardContent className="space-y-4">
                   {profileLoading ? (
                     <div className="text-center py-4 text-gray-600">Loading...</div>
+                  ) : profileError ? (
+                    <ErrorDisplay 
+                      error={profileError} 
+                      onRetry={() => window.location.reload()}
+                      className="mb-4"
+                    />
                   ) : savedProperties.length > 0 ? (
                     savedProperties.slice(0, 2).map((favorite) => {
                       if (!favorite.properties) return null;
@@ -268,6 +286,12 @@ const Dashboard = () => {
                 <CardContent className="space-y-4">
                   {activitiesLoading ? (
                     <div className="text-center py-4 text-gray-600">Loading...</div>
+                  ) : activitiesError ? (
+                    <ErrorDisplay 
+                      error={activitiesError} 
+                      onRetry={() => window.location.reload()}
+                      className="mb-4"
+                    />
                   ) : activities.length > 0 ? (
                     activities.slice(0, 4).map((activity) => (
                     <div key={activity.id} className="flex items-center gap-3">
@@ -346,85 +370,104 @@ const Dashboard = () => {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {mockSavedProperties.map((property) => (
-                <Card
-                  key={property.id}
-                  className="overflow-hidden hover:shadow-lg transition-shadow"
-                >
-                  <div className="relative">
-                    <img
-                      src={property.image}
-                      alt={property.title}
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="absolute top-3 right-3 flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="bg-white/90"
-                      >
-                        <Share2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="bg-white/90"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <Badge className="absolute top-3 left-3 bg-blue-600">
-                      {property.status}
-                    </Badge>
-                  </div>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-xl font-bold text-blue-700">
-                        {property.price}
-                      </span>
-                      <span
-                        className={`text-sm px-2 py-1 rounded ${
-                          property.priceChange.startsWith("+")
-                            ? "bg-red-100 text-red-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
-                      >
-                        {property.priceChange}
-                      </span>
-                    </div>
-                    <h3 className="font-semibold text-gray-900 mb-2">
-                      {property.title}
-                    </h3>
-                    <div className="flex items-center gap-2 text-gray-600 mb-3">
-                      <MapPin className="h-4 w-4" />
-                      <span className="text-sm">{property.location}</span>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                      <div className="flex items-center gap-1">
-                        <Bed className="h-4 w-4" />
-                        <span>{property.bedrooms}</span>
+            {profileLoading ? (
+              <div className="text-center py-8 text-gray-600">Loading your saved properties...</div>
+            ) : profileError ? (
+              <ErrorDisplay 
+                error={profileError} 
+                onRetry={() => window.location.reload()}
+                className="mb-4"
+              />
+            ) : savedProperties.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {savedProperties.map((favorite) => {
+                  if (!favorite.properties) return null;
+                  const property = favorite.properties;
+                  return (
+                    <Card
+                      key={favorite.id}
+                      className="overflow-hidden hover:shadow-lg transition-shadow"
+                    >
+                      <div className="relative">
+                        <img
+                          src={property.images?.[0] || '/placeholder.svg'}
+                          alt={property.title}
+                          className="w-full h-48 object-cover"
+                        />
+                        <div className="absolute top-3 right-3 flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="bg-white/90"
+                          >
+                            <Share2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="bg-white/90"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <Badge className="absolute top-3 left-3 bg-blue-600">
+                          {property.status}
+                        </Badge>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Bath className="h-4 w-4" />
-                        <span>{property.bathrooms}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Square className="h-4 w-4" />
-                        <span>{property.area}</span>
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-500 mb-3">
-                      Saved on{" "}
-                      {new Date(property.savedDate).toLocaleDateString()}
-                    </div>
-                    <Link to={`/properties/${property.id}`}>
-                      <Button className="w-full">View Details</Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-xl font-bold text-blue-700">
+                            ₦{property.price?.toLocaleString()}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold text-gray-900 mb-2">
+                          {property.title}
+                        </h3>
+                        <div className="flex items-center gap-2 text-gray-600 mb-3">
+                          <MapPin className="h-4 w-4" />
+                          <span className="text-sm">{property.address}, {property.city}</span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                          {property.bedrooms && (
+                            <div className="flex items-center gap-1">
+                              <Bed className="h-4 w-4" />
+                              <span>{property.bedrooms}</span>
+                            </div>
+                          )}
+                          {property.bathrooms && (
+                            <div className="flex items-center gap-1">
+                              <Bath className="h-4 w-4" />
+                              <span>{property.bathrooms}</span>
+                            </div>
+                          )}
+                          {property.area_sqm && (
+                            <div className="flex items-center gap-1">
+                              <Square className="h-4 w-4" />
+                              <span>{property.area_sqm}m²</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 mb-3">
+                          Saved on {new Date(favorite.created_at).toLocaleDateString()}
+                        </div>
+                        <Link to={`/properties/${property.id}`}>
+                          <Button className="w-full">View Details</Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  );
+                }).filter(Boolean)}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Heart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No saved properties yet</h3>
+                <p className="text-gray-600 mb-4">Start exploring properties and save your favorites!</p>
+                <Link to="/properties">
+                  <Button>Browse Properties</Button>
+                </Link>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="searches" className="space-y-6">

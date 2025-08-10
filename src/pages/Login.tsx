@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Mail, Lock, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/Toast";
+import ErrorDisplay from "@/components/ErrorDisplay";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -20,7 +21,7 @@ const Login = () => {
   const [resetSent, setResetSent] = useState(false);
 
   const { login, resetPassword } = useAuth();
-  const { toast } = useToast();
+  const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -35,10 +36,7 @@ const Login = () => {
       const result = await login(email, password);
       
       if (result.success) {
-        toast({
-          title: "Login successful",
-          description: "Welcome back!",
-        });
+        showSuccess("Welcome back! You've been signed in successfully.");
         navigate(from, { replace: true });
       } else {
         setError(result.error || "Login failed");
@@ -114,9 +112,11 @@ const Login = () => {
             ) : (
               <form onSubmit={handleResetPassword} className="space-y-4">
                 {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
+                  <ErrorDisplay 
+                    error={error}
+                    onRetry={() => setError("")}
+                    onAction={() => setShowResetForm(true)}
+                  />
                 )}
                 <div className="space-y-2">
                   <Label htmlFor="reset-email">Email</Label>

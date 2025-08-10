@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser, Session } from "@supabase/supabase-js";
+import { translateError } from "@/lib/errorHandling";
 
 interface User {
   id: string;
@@ -121,7 +122,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) {
         console.error('Login error:', error);
-        return { success: false, error: error.message };
+        const friendlyError = translateError(error);
+        return { success: false, error: friendlyError.message };
       }
 
       if (data.user) {
@@ -134,7 +136,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { success: false, error: 'Login failed' };
     } catch (error) {
       console.error("Login failed:", error);
-      return { success: false, error: 'An unexpected error occurred' };
+      const friendlyError = translateError(error);
+      return { success: false, error: friendlyError.message };
     } finally {
       setIsLoading(false);
     }
@@ -208,17 +211,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) {
         console.error('Signup error:', error);
-        
-        // Provide more specific error messages
-        if (error.message.includes('User already registered')) {
-          return { success: false, error: 'An account with this email already exists. Try signing in instead.' };
-        } else if (error.message.includes('Invalid email')) {
-          return { success: false, error: 'Please enter a valid email address.' };
-        } else if (error.message.includes('Password')) {
-          return { success: false, error: 'Password must be at least 6 characters long.' };
-        }
-        
-        return { success: false, error: error.message };
+        const friendlyError = translateError(error);
+        return { success: false, error: friendlyError.message };
       }
 
       if (data.user) {
@@ -237,7 +231,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { success: false, error: 'Signup failed - no user created' };
     } catch (error: any) {
       console.error("Signup failed:", error);
-      return { success: false, error: error.message || 'An unexpected error occurred' };
+      const friendlyError = translateError(error);
+      return { success: false, error: friendlyError.message };
     } finally {
       setIsLoading(false);
     }
