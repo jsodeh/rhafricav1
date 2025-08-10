@@ -32,128 +32,19 @@ import {
   Settings,
 } from "lucide-react";
 import ChatManagement from "@/components/ChatManagement";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { useProperties } from "@/hooks/useProperties";
+import EmptyState from "@/components/EmptyState";
 
-// Mock agent data
-const mockAgentData = {
-  name: "Sarah Johnson",
-  email: "sarah.johnson@realestate.com",
-  phone: "+234 801 234 5678",
-  license: "RE-2024-001",
-  company: "Lagos Property Group",
-  joinDate: "January 2020",
-  profilePhoto:
-    "https://images.unsplash.com/photo-1594736797933-d0ca9265b069?w=400&h=400&fit=crop&crop=face",
-  rating: 4.9,
-  totalReviews: 127,
-  totalSales: 156,
-  totalCommission: "₦45,800,000",
-  activeListings: 12,
-  pendingDeals: 8,
-};
+// Real agent data will be loaded from user context and profile
 
-// Mock listings data
-const mockListings = [
-  {
-    id: 1,
-    title: "Modern 3-Bedroom Apartment",
-    location: "Victoria Island, Lagos",
-    price: "₦45,000,000",
-    status: "Active",
-    bedrooms: 3,
-    bathrooms: 2,
-    area: "150 sqm",
-    image:
-      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&h=400&fit=crop",
-    daysOnMarket: 15,
-    views: 234,
-    inquiries: 8,
-    tours: 5,
-    createdDate: "2024-01-15",
-  },
-  {
-    id: 2,
-    title: "Luxury 4BR Penthouse",
-    location: "Ikoyi, Lagos",
-    price: "₦120,000,000",
-    status: "Under Contract",
-    bedrooms: 4,
-    bathrooms: 3,
-    area: "280 sqm",
-    image:
-      "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=600&h=400&fit=crop",
-    daysOnMarket: 45,
-    views: 567,
-    inquiries: 23,
-    tours: 12,
-    createdDate: "2024-01-01",
-  },
-  {
-    id: 3,
-    title: "Family House with Garden",
-    location: "Lekki, Lagos",
-    price: "₦75,000,000",
-    status: "Sold",
-    bedrooms: 4,
-    bathrooms: 3,
-    area: "220 sqm",
-    image:
-      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&h=400&fit=crop",
-    daysOnMarket: 30,
-    views: 345,
-    inquiries: 15,
-    tours: 8,
-    createdDate: "2023-12-15",
-  },
-];
+// Real listings: fetched via useProperties filtered to agent
 
-// Mock clients data
-const mockClients = [
-  {
-    id: 1,
-    name: "David Okonkwo",
-    email: "david.okonkwo@email.com",
-    phone: "+234 802 345 6789",
-    type: "Buyer",
-    status: "Active",
-    budget: "₦50M - ₦80M",
-    preferences: "3-4 BR, Victoria Island, Modern",
-    lastContact: "2024-01-20",
-    source: "Website",
-    avatar:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-  },
-  {
-    id: 2,
-    name: "Mrs. Adebisi",
-    email: "adebisi@email.com",
-    phone: "+234 803 456 7890",
-    type: "Seller",
-    status: "Under Contract",
-    budget: "₦35M - ₦45M",
-    preferences: "Quick Sale, Furnished",
-    lastContact: "2024-01-18",
-    source: "Referral",
-    avatar:
-      "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=100&h=100&fit=crop&crop=face",
-  },
-  {
-    id: 3,
-    name: "James Chen",
-    email: "james.chen@email.com",
-    phone: "+234 804 567 8901",
-    type: "Investor",
-    status: "Active",
-    budget: "₦100M+",
-    preferences: "High ROI, Commercial",
-    lastContact: "2024-01-19",
-    source: "Cold Call",
-    avatar:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-  },
-];
+// Clients section will render an empty state until a proper CRM is integrated
 
-// Mock recent activities
-const mockActivities = [
+// Recent activities placeholder (empty)
+const mockActivities: any[] = [
   {
     id: 1,
     type: "inquiry",
@@ -189,12 +80,32 @@ const mockActivities = [
 ];
 
 const AgentDashboard = () => {
+  const { user } = useAuth();
+  const { profile, isLoading: profileLoading } = useUserProfile();
   const [activeTab, setActiveTab] = useState("overview");
   const [listingFilter, setListingFilter] = useState("all");
+  const { properties, isLoading: propsLoading, error: propsError, isEmpty } = useProperties({});
 
-  const filteredListings = mockListings.filter((listing) => {
+  // Real agent data from user and profile
+  const agentData = {
+    name: user?.name || "Agent",
+    email: user?.email || "",
+    phone: profile?.phone || user?.phone || "",
+    license: profile?.license_number || "Not provided",
+    company: profile?.agency_name || "Real Estate Hotspot",
+    joinDate: user ? new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "",
+    profilePhoto: user?.profilePhoto || profile?.avatar_url || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
+    rating: 0, // Will be calculated from real reviews
+    totalReviews: 0, // Will be fetched from database
+    totalSales: 0, // Will be calculated from real sales
+    totalCommission: "₦0", // Will be calculated from real data
+    activeListings: 0, // Will be fetched from properties table
+    pendingDeals: 0,
+  };
+
+  const filteredListings = (properties || []).filter((listing: any) => {
     if (listingFilter === "all") return true;
-    return listing.status.toLowerCase() === listingFilter.toLowerCase();
+    return (listing.status || '').toLowerCase() === listingFilter.toLowerCase();
   });
 
   return (
@@ -206,8 +117,8 @@ const AgentDashboard = () => {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
           <div className="flex items-center gap-4">
             <img
-              src={mockAgentData.profilePhoto}
-              alt={mockAgentData.name}
+              src={agentData.profilePhoto}
+              alt={agentData.name}
               className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg"
             />
             <div>
@@ -215,15 +126,15 @@ const AgentDashboard = () => {
                 Agent Dashboard
               </h1>
               <p className="text-gray-600">
-                {mockAgentData.name} • {mockAgentData.company}
+                {agentData.name} • {agentData.company}
               </p>
               <div className="flex items-center gap-2 mt-1">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                 <span className="text-sm font-medium">
-                  {mockAgentData.rating}
+                  {agentData.rating}
                 </span>
                 <span className="text-sm text-gray-500">
-                  ({mockAgentData.totalReviews} reviews)
+                  ({agentData.totalReviews} reviews)
                 </span>
               </div>
             </div>
@@ -254,7 +165,7 @@ const AgentDashboard = () => {
                     Active Listings
                   </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {mockAgentData.activeListings}
+                    {agentData.activeListings}
                   </p>
                 </div>
                 <Home className="h-8 w-8 text-blue-500" />
@@ -270,7 +181,7 @@ const AgentDashboard = () => {
                     Total Sales
                   </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {mockAgentData.totalSales}
+                    {agentData.totalSales}
                   </p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-green-500" />
@@ -286,7 +197,7 @@ const AgentDashboard = () => {
                     Commission Earned
                   </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {mockAgentData.totalCommission}
+                    {agentData.totalCommission}
                   </p>
                 </div>
                 <DollarSign className="h-8 w-8 text-amber-500" />
@@ -302,7 +213,7 @@ const AgentDashboard = () => {
                     Pending Deals
                   </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {mockAgentData.pendingDeals}
+                    {agentData.pendingDeals}
                   </p>
                 </div>
                 <Target className="h-8 w-8 text-purple-500" />
@@ -343,13 +254,13 @@ const AgentDashboard = () => {
                   </Link>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {mockListings.slice(0, 3).map((listing) => (
+                  {filteredListings.slice(0, 3).map((listing: any) => (
                     <div
                       key={listing.id}
                       className="flex gap-3 p-3 border rounded-lg hover:bg-gray-50"
                     >
                       <img
-                        src={listing.image}
+                       src={(listing.images && listing.images[0]) || '/placeholder.svg'}
                         alt={listing.title}
                         className="w-16 h-12 object-cover rounded"
                       />
@@ -358,11 +269,11 @@ const AgentDashboard = () => {
                           {listing.title}
                         </h4>
                         <p className="text-sm text-gray-600">
-                          {listing.location}
+                           {`${listing.address || ''}${listing.city ? `, ${listing.city}` : ''}`}
                         </p>
                         <div className="flex items-center justify-between mt-1">
                           <span className="font-semibold text-blue-700">
-                            {listing.price}
+                             {`₦${Number(listing.price || 0).toLocaleString()}`}
                           </span>
                           <Badge
                             variant={
@@ -373,13 +284,13 @@ const AgentDashboard = () => {
                                   : "secondary"
                             }
                           >
-                            {listing.status}
+                             {(listing.status || '').toString()}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
-                          <span>{listing.views} views</span>
-                          <span>{listing.inquiries} inquiries</span>
-                          <span>{listing.tours} tours</span>
+                           <span>{listing.views_count || 0} views</span>
+                           <span>{/* inquiries count to be integrated */}0 inquiries</span>
+                           <span>0 tours</span>
                         </div>
                       </div>
                     </div>
@@ -396,24 +307,33 @@ const AgentDashboard = () => {
                   </Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {mockActivities.map((activity) => (
-                    <div key={activity.id} className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <activity.icon className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-900">
-                          {activity.message}
-                        </p>
-                        {activity.client && (
-                          <p className="text-xs text-blue-600">
-                            {activity.client}
+                  {mockActivities.length > 0 ? (
+                    mockActivities.map((activity) => (
+                      <div key={activity.id} className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <activity.icon className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-900">
+                            {activity.message}
                           </p>
-                        )}
-                        <p className="text-xs text-gray-500">{activity.time}</p>
+                          {activity.client && (
+                            <p className="text-xs text-blue-600">
+                              {activity.client}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500">{activity.time}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <EmptyState
+                      icon={MessageCircle}
+                      title="No Recent Activity"
+                      description="Your latest listing and client activities will appear here."
+                      className="py-8"
+                    />
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -806,7 +726,7 @@ const AgentDashboard = () => {
                     </label>
                     <input
                       type="text"
-                      value={mockAgentData.name}
+                      value={agentData.name}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
                       readOnly
                     />
@@ -817,7 +737,7 @@ const AgentDashboard = () => {
                     </label>
                     <input
                       type="email"
-                      value={mockAgentData.email}
+                      value={agentData.email}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
                       readOnly
                     />
@@ -828,7 +748,7 @@ const AgentDashboard = () => {
                     </label>
                     <input
                       type="tel"
-                      value={mockAgentData.phone}
+                      value={agentData.phone}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
                       readOnly
                     />
@@ -839,7 +759,7 @@ const AgentDashboard = () => {
                     </label>
                     <input
                       type="text"
-                      value={mockAgentData.license}
+                      value={agentData.license}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
                       readOnly
                     />

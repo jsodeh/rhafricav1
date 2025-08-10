@@ -32,112 +32,14 @@ import {
   BarChart3,
   Download,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import EmptyState from "@/components/EmptyState";
+import { useProperties } from "@/hooks/useProperties";
 
-// Mock owner data
-const mockOwnerData = {
-  name: "Michael Thompson",
-  email: "michael.thompson@email.com",
-  phone: "+234 802 345 6789",
-  joinDate: "March 2022",
-  profilePhoto:
-    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
-  totalProperties: 8,
-  totalTenants: 12,
-  monthlyIncome: "₦2,850,000",
-  occupancyRate: 92,
-};
+// Real owner data will be loaded from user context
 
-// Mock properties data
-const mockProperties = [
-  {
-    id: 1,
-    title: "3BR Apartment - Block A",
-    location: "Victoria Island, Lagos",
-    type: "Apartment",
-    bedrooms: 3,
-    bathrooms: 2,
-    area: "150 sqm",
-    image:
-      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&h=400&fit=crop",
-    status: "Occupied",
-    rent: "₦450,000",
-    tenant: "David Johnson",
-    leaseStart: "2024-01-01",
-    leaseEnd: "2024-12-31",
-    lastPayment: "2024-01-15",
-    maintenanceIssues: 0,
-  },
-  {
-    id: 2,
-    title: "4BR Duplex - Unit 5",
-    location: "Lekki, Lagos",
-    type: "Duplex",
-    bedrooms: 4,
-    bathrooms: 3,
-    area: "220 sqm",
-    image:
-      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&h=400&fit=crop",
-    status: "Vacant",
-    rent: "₦750,000",
-    tenant: null,
-    leaseStart: null,
-    leaseEnd: null,
-    lastPayment: null,
-    maintenanceIssues: 2,
-  },
-  {
-    id: 3,
-    title: "2BR Flat - Ground Floor",
-    location: "Surulere, Lagos",
-    type: "Flat",
-    bedrooms: 2,
-    bathrooms: 1,
-    area: "100 sqm",
-    image:
-      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&h=400&fit=crop",
-    status: "Occupied",
-    rent: "₦280,000",
-    tenant: "Sarah Williams",
-    leaseStart: "2023-06-01",
-    leaseEnd: "2024-05-31",
-    lastPayment: "2024-01-10",
-    maintenanceIssues: 1,
-  },
-];
 
-// Mock tenants data
-const mockTenants = [
-  {
-    id: 1,
-    name: "David Johnson",
-    email: "david.johnson@email.com",
-    phone: "+234 803 456 7890",
-    propertyId: 1,
-    propertyTitle: "3BR Apartment - Block A",
-    rent: "₦450,000",
-    leaseStart: "2024-01-01",
-    leaseEnd: "2024-12-31",
-    paymentStatus: "Current",
-    lastPayment: "2024-01-15",
-    avatar:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-  },
-  {
-    id: 2,
-    name: "Sarah Williams",
-    email: "sarah.williams@email.com",
-    phone: "+234 804 567 8901",
-    propertyId: 3,
-    propertyTitle: "2BR Flat - Ground Floor",
-    rent: "₦280,000",
-    leaseStart: "2023-06-01",
-    leaseEnd: "2024-05-31",
-    paymentStatus: "Due",
-    lastPayment: "2024-01-10",
-    avatar:
-      "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=100&h=100&fit=crop&crop=face",
-  },
-];
 
 // Mock maintenance requests
 const mockMaintenanceRequests = [
@@ -176,38 +78,31 @@ const mockMaintenanceRequests = [
   },
 ];
 
-// Mock financial data
-const mockFinancials = [
-  {
-    month: "January 2024",
-    income: "₦1,180,000",
-    expenses: "₦320,000",
-    profit: "₦860,000",
-    properties: 3,
-  },
-  {
-    month: "December 2023",
-    income: "₦1,180,000",
-    expenses: "₦450,000",
-    profit: "₦730,000",
-    properties: 3,
-  },
-  {
-    month: "November 2023",
-    income: "₦730,000",
-    expenses: "₦280,000",
-    profit: "₦450,000",
-    properties: 2,
-  },
-];
 
 const OwnerDashboard = () => {
+  const { user } = useAuth();
+  const { profile, isLoading: profileLoading } = useUserProfile();
   const [activeTab, setActiveTab] = useState("overview");
   const [propertyFilter, setPropertyFilter] = useState("all");
 
-  const filteredProperties = mockProperties.filter((property) => {
+  // Real owner data
+  const ownerData = {
+    name: user?.name || "Property Owner",
+    email: user?.email || "",
+    phone: profile?.phone || user?.phone || "",
+    profilePhoto: user?.profilePhoto || profile?.avatar_url || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
+    joinDate: user ? new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "",
+    totalProperties: 0, // Will be calculated from real data
+    totalTenants: 0, // Will be calculated from real data
+    monthlyIncome: "₦0", // Will be calculated from real data
+    occupancyRate: 0, // Will be calculated from real data
+  };
+
+  // Fetch real properties (owned or by default all visibles)
+  const { properties, isLoading: propsLoading, error: propsError } = useProperties();
+  const filteredProperties = (properties || []).filter((property) => {
     if (propertyFilter === "all") return true;
-    return property.status.toLowerCase() === propertyFilter.toLowerCase();
+    return (property.status || '').toLowerCase() === propertyFilter.toLowerCase();
   });
 
   return (
@@ -219,8 +114,8 @@ const OwnerDashboard = () => {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
           <div className="flex items-center gap-4">
             <img
-              src={mockOwnerData.profilePhoto}
-              alt={mockOwnerData.name}
+              src={ownerData.profilePhoto}
+              alt={ownerData.name}
               className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg"
             />
             <div>
@@ -228,7 +123,7 @@ const OwnerDashboard = () => {
                 Property Owner Dashboard
               </h1>
               <p className="text-gray-600">
-                {mockOwnerData.name} • Member since {mockOwnerData.joinDate}
+                {ownerData.name} • Member since {ownerData.joinDate}
               </p>
             </div>
           </div>
@@ -258,7 +153,7 @@ const OwnerDashboard = () => {
                     Total Properties
                   </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {mockOwnerData.totalProperties}
+                    {ownerData.totalProperties}
                   </p>
                 </div>
                 <Home className="h-8 w-8 text-blue-500" />
@@ -274,7 +169,7 @@ const OwnerDashboard = () => {
                     Active Tenants
                   </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {mockOwnerData.totalTenants}
+                    {ownerData.totalTenants}
                   </p>
                 </div>
                 <Users className="h-8 w-8 text-green-500" />
@@ -290,7 +185,7 @@ const OwnerDashboard = () => {
                     Monthly Income
                   </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {mockOwnerData.monthlyIncome}
+                    {ownerData.monthlyIncome}
                   </p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-500" />
@@ -306,7 +201,7 @@ const OwnerDashboard = () => {
                     Occupancy Rate
                   </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {mockOwnerData.occupancyRate}%
+                    {ownerData.occupancyRate}%
                   </p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-blue-500" />
@@ -346,7 +241,7 @@ const OwnerDashboard = () => {
                   </Link>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {mockProperties.slice(0, 3).map((property) => (
+                  {properties.slice(0, 3).map((property) => (
                     <div
                       key={property.id}
                       className="flex gap-3 p-3 border rounded-lg hover:bg-gray-50"
@@ -507,8 +402,9 @@ const OwnerDashboard = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProperties.map((property) => (
+            {filteredProperties.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredProperties.map((property) => (
                 <Card
                   key={property.id}
                   className="overflow-hidden hover:shadow-lg transition-shadow"
@@ -609,7 +505,22 @@ const OwnerDashboard = () => {
                   </CardContent>
                 </Card>
               ))}
-            </div>
+              </div>
+            ) : (
+              <EmptyState
+                icon={Home}
+                title="Ready to List Your First Property?"
+                description="Start building your real estate portfolio! Add your first property to begin tracking tenants, income, and maintenance requests."
+                action={{
+                  label: "Add Property",
+                  onClick: () => {
+                    // TODO: Navigate to add property page
+                    console.log("Navigate to add property");
+                  }
+                }}
+                className="py-12"
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="tenants" className="space-y-6">
@@ -621,8 +532,12 @@ const OwnerDashboard = () => {
               </Button>
             </div>
 
-            <div className="space-y-4">
-              {mockTenants.map((tenant) => (
+            {/* Real tenants will be fetched from database */}
+            {(() => {
+              const tenants: any[] = []; // TODO: Replace with real data from database
+              return tenants.length > 0 ? (
+                <div className="space-y-4">
+                  {tenants.map((tenant) => (
                 <Card key={tenant.id}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -674,7 +589,16 @@ const OwnerDashboard = () => {
                   </CardContent>
                 </Card>
               ))}
-            </div>
+                </div>
+              ) : (
+                <EmptyState
+                  icon={Users}
+                  title="No Tenants Yet"
+                  description="Your tenant management tools will appear here once you have renters. Start by adding properties and finding tenants to manage."
+                  className="py-12"
+                />
+              );
+            })()}
           </TabsContent>
 
           <TabsContent value="maintenance" className="space-y-6">
@@ -764,59 +688,76 @@ const OwnerDashboard = () => {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-gray-600 mb-2">
-                      This Month Income
-                    </p>
-                    <p className="text-3xl font-bold text-green-600">
-                      ₦1,180,000
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      +8% from last month
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Real financial data will be calculated from properties and tenants */}
+            {(() => {
+              const hasFinancialData = false; // TODO: Replace with real data check
+              return hasFinancialData ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-gray-600 mb-2">
+                          This Month Income
+                        </p>
+                        <p className="text-3xl font-bold text-green-600">
+                          ₦0
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          No data yet
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-gray-600 mb-2">
-                      This Month Expenses
-                    </p>
-                    <p className="text-3xl font-bold text-red-600">₦320,000</p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      -15% from last month
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-gray-600 mb-2">
+                          This Month Expenses
+                        </p>
+                        <p className="text-3xl font-bold text-red-600">₦0</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          No data yet
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-gray-600 mb-2">
-                      Net Profit
-                    </p>
-                    <p className="text-3xl font-bold text-blue-600">₦860,000</p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      +18% from last month
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-gray-600 mb-2">
+                          Net Profit
+                        </p>
+                        <p className="text-3xl font-bold text-blue-600">₦0</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          No data yet
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                <EmptyState
+                  icon={DollarSign}
+                  title="No Income Data Yet"
+                  description="Income tracking will begin once you have active rentals. Add properties and tenants to start monitoring your financial performance."
+                  className="py-12"
+                />
+              );
+            })()}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Monthly Performance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {mockFinancials.map((month, index) => (
+            {(() => {
+              const financials: any[] = []; // TODO: Replace with real financial data
+              const hasFinancialData = false; // TODO: Replace with real data check
+              return hasFinancialData ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Monthly Performance</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {financials.map((month, index) => (
                     <div
                       key={index}
                       className="flex items-center justify-between p-4 border rounded-lg"
@@ -853,9 +794,11 @@ const OwnerDashboard = () => {
                       </div>
                     </div>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null;
+            })()}
           </TabsContent>
 
           <TabsContent value="profile" className="space-y-6">
@@ -873,7 +816,7 @@ const OwnerDashboard = () => {
                     </label>
                     <input
                       type="text"
-                      value={mockOwnerData.name}
+                      value={ownerData.name}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
                       readOnly
                     />
@@ -884,7 +827,7 @@ const OwnerDashboard = () => {
                     </label>
                     <input
                       type="email"
-                      value={mockOwnerData.email}
+                      value={ownerData.email}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
                       readOnly
                     />
@@ -895,7 +838,7 @@ const OwnerDashboard = () => {
                     </label>
                     <input
                       type="tel"
-                      value={mockOwnerData.phone}
+                      value={ownerData.phone}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
                       readOnly
                     />

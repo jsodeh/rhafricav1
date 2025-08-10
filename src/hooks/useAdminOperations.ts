@@ -132,8 +132,8 @@ export const useAdminOperations = () => {
         api: responseTime > 1000 ? 'warning' : 'healthy',
         storage: 'healthy', // This would come from actual storage metrics
         responseTime,
-        activeUsers: Math.floor(Math.random() * 2000) + 500, // Mock data
-        storageUsed: 45 // Mock percentage
+        activeUsers: 0,
+        storageUsed: 0
       };
     } catch (err: any) {
       setError(err.message);

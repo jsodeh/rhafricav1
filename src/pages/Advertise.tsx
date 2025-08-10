@@ -135,10 +135,10 @@ const successStories = [
     package: "Enterprise"
   },
   {
-    name: "Sarah Johnson",
+    name: "Real Estate Professional",
     type: "Independent Agent",
     result: "₦500M in sales volume",
-    quote: "The platform's tools and visibility helped me become a top performer in Victoria Island market.",
+    quote: "The platform's tools and visibility helped me become a top performer in the Lagos market.",
     image: "https://images.unsplash.com/photo-1594736797933-d0ca9265b069?w=400&h=400&fit=crop&crop=face",
     package: "Professional"
   }

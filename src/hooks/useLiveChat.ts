@@ -69,167 +69,41 @@ export const useLiveChat = () => {
   const subscriptionRef = useRef<any>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Available agents for chat
+  // Real agents will be fetched from database when chat system is enabled
   const defaultAgents: ChatAgent[] = [
     {
-      id: "agent_sarah",
-      name: "Sarah Johnson",
-      avatar: "/placeholder.svg",
-      role: "Senior Property Consultant",
-      is_online: true,
-      response_time: "Usually responds in 2 minutes",
-      department: "Sales",
-    },
-    {
-      id: "agent_michael",
-      name: "Michael Adebayo",
-      avatar: "/placeholder.svg",
-      role: "Luxury Properties Specialist",
-      is_online: true,
-      response_time: "Usually responds in 5 minutes",
-      department: "Luxury",
-    },
-    {
       id: "support_team",
-      name: "Customer Support",
+      name: "Real Estate Hotspot Support",
       avatar: "/placeholder.svg",
-      role: "Support Team",
+      role: "Customer Support",
       is_online: true,
       response_time: "Available 24/7",
       department: "Support",
     },
   ];
 
-  // Simulate conversation data
-  const generateMockConversations = useCallback((): ChatConversation[] => {
+  // Fetch conversations from Supabase
+  const fetchConversationsFromDb = useCallback(async (): Promise<ChatConversation[]> => {
     if (!user) return [];
-
-    return [
-      {
-        id: "conv_1",
-        property_id: "prop_1",
-        participants: [user.id, "agent_sarah"],
-        unread_count: 2,
-        status: "active",
-        priority: "high",
-        created_at: new Date(Date.now() - 86400000).toISOString(),
-        updated_at: new Date().toISOString(),
-        last_message: {
-          id: "msg_1",
-          conversation_id: "conv_1",
-          sender_id: "agent_sarah",
-          receiver_id: user.id,
-          content: "Hi! I have some great properties that match your criteria. Would you like to schedule a viewing?",
-          message_type: "text",
-          read_at: null,
-          created_at: new Date(Date.now() - 300000).toISOString(),
-          sender: {
-            name: "Sarah Johnson",
-            avatar: "/placeholder.svg",
-            role: "Senior Property Consultant",
-          },
-        },
-        metadata: {
-          customer_name: user.email?.split('@')[0] || "Customer",
-          customer_email: user.email,
-          property_title: "Luxury 3-Bedroom Apartment - Victoria Island",
-          agent_assigned: "agent_sarah",
-          tags: ["property-inquiry", "high-priority"],
-        },
-      },
-      {
-        id: "conv_2",
-        participants: [user.id, "support_team"],
-        unread_count: 0,
-        status: "waiting",
-        priority: "medium",
-        created_at: new Date(Date.now() - 172800000).toISOString(),
-        updated_at: new Date(Date.now() - 3600000).toISOString(),
-        last_message: {
-          id: "msg_2",
-          conversation_id: "conv_2",
-          sender_id: user.id,
-          receiver_id: "support_team",
-          content: "Thank you for the help! I'll review the documents and get back to you.",
-          message_type: "text",
-          read_at: new Date(Date.now() - 3600000).toISOString(),
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-        },
-        metadata: {
-          customer_name: user.email?.split('@')[0] || "Customer",
-          customer_email: user.email,
-          agent_assigned: "support_team",
-          tags: ["support", "documentation"],
-        },
-      },
-    ];
+    const { data, error } = await supabase
+      .from('case_conversations')
+      .select('*')
+      .contains('participants', [user.id])
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return (data || []) as unknown as ChatConversation[];
   }, [user]);
 
-  // Generate mock messages for a conversation
-  const generateMockMessages = useCallback((conversationId: string): ChatMessage[] => {
+  // Fetch messages from Supabase
+  const fetchMessagesFromDb = useCallback(async (conversationId: string): Promise<ChatMessage[]> => {
     if (!user) return [];
-
-    const baseTime = Date.now() - 3600000; // 1 hour ago
-
-    const mockMessages: ChatMessage[] = [
-      {
-        id: "msg_1",
-        conversation_id: conversationId,
-        sender_id: "agent_sarah",
-        receiver_id: user.id,
-        content: "Hello! Welcome to Real Estate Hotspot. How can I help you find your perfect property today?",
-        message_type: "text",
-        read_at: new Date(baseTime + 60000).toISOString(),
-        created_at: new Date(baseTime).toISOString(),
-        sender: {
-          name: "Sarah Johnson",
-          avatar: "/placeholder.svg",
-          role: "Senior Property Consultant",
-        },
-      },
-      {
-        id: "msg_2",
-        conversation_id: conversationId,
-        sender_id: user.id,
-        receiver_id: "agent_sarah",
-        content: "Hi! I'm looking for a 3-bedroom apartment in Victoria Island. My budget is around ₦50 million.",
-        message_type: "text",
-        read_at: new Date(baseTime + 120000).toISOString(),
-        created_at: new Date(baseTime + 180000).toISOString(),
-      },
-      {
-        id: "msg_3",
-        conversation_id: conversationId,
-        sender_id: "agent_sarah",
-        receiver_id: user.id,
-        content: "Perfect! I have several excellent options in Victoria Island within your budget. Let me share some properties that would be ideal for you.",
-        message_type: "text",
-        read_at: null,
-        created_at: new Date(baseTime + 240000).toISOString(),
-        sender: {
-          name: "Sarah Johnson",
-          avatar: "/placeholder.svg",
-          role: "Senior Property Consultant",
-        },
-      },
-      {
-        id: "msg_4",
-        conversation_id: conversationId,
-        sender_id: "agent_sarah",
-        receiver_id: user.id,
-        content: "Would you be available for a viewing this weekend? I can arrange visits to 3-4 properties that match your criteria.",
-        message_type: "text",
-        read_at: null,
-        created_at: new Date(baseTime + 300000).toISOString(),
-        sender: {
-          name: "Sarah Johnson",
-          avatar: "/placeholder.svg",
-          role: "Senior Property Consultant",
-        },
-      },
-    ];
-
-    return mockMessages;
+    const { data, error } = await supabase
+      .from('case_messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return (data || []) as unknown as ChatMessage[];
   }, [user]);
 
   // Fetch conversations
@@ -240,13 +114,9 @@ export const useLiveChat = () => {
       setIsLoading(true);
       setError(null);
 
-      // In a real implementation, fetch from Supabase
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-      const mockConversations = generateMockConversations();
-      setConversations(mockConversations);
-
-      // Calculate total unread count
-      const totalUnread = mockConversations.reduce((sum, conv) => sum + conv.unread_count, 0);
+      const convs = await fetchConversationsFromDb();
+      setConversations(convs);
+      const totalUnread = convs.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
       setUnreadTotal(totalUnread);
     } catch (err) {
       setError('Failed to fetch conversations');
@@ -254,7 +124,7 @@ export const useLiveChat = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, generateMockConversations]);
+  }, [user, fetchConversationsFromDb]);
 
   // Fetch messages for a conversation
   const fetchMessages = useCallback(async (conversationId: string) => {
@@ -264,10 +134,8 @@ export const useLiveChat = () => {
       setIsLoading(true);
       setError(null);
 
-      // In a real implementation, fetch from Supabase
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const mockMessages = generateMockMessages(conversationId);
-      setMessages(mockMessages);
+      const dbMessages = await fetchMessagesFromDb(conversationId);
+      setMessages(dbMessages);
       setCurrentConversation(conversationId);
 
       // Mark conversation as read
@@ -284,7 +152,7 @@ export const useLiveChat = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, generateMockMessages]);
+  }, [user, fetchMessagesFromDb]);
 
   // Send a message
   const sendMessage = useCallback(async (
@@ -468,16 +336,16 @@ export const useLiveChat = () => {
           const newMessage: ChatMessage = {
             id: `msg_${Date.now()}`,
             conversation_id: randomConv.id,
-            sender_id: randomConv.participants.find(p => p !== user.id) || "agent_sarah",
+            sender_id: randomConv.participants.find(p => p !== user.id) || "support_team",
             receiver_id: user.id,
             content: randomResponse,
             message_type: "text",
             read_at: null,
             created_at: new Date().toISOString(),
             sender: {
-              name: "Sarah Johnson",
+              name: "Real Estate Hotspot Support",
               avatar: "/placeholder.svg",
-              role: "Senior Property Consultant",
+              role: "Customer Support",
             },
           };
 

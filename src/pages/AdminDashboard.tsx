@@ -36,149 +36,30 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import EmptyState from "@/components/EmptyState";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
-// Mock admin data
-const mockAdminData = {
-  name: "Admin User",
-  email: "admin@realestatehotspot.com",
-  role: "Super Admin",
-  lastLogin: "2024-01-20 14:30",
-  permissions: ["users", "content", "finance", "support", "analytics"],
-};
-
-// Mock users data
-// const mockUsers = [
-//   {
-//     id: 1,
-//     name: "John Doe",
-//     email: "john.doe@email.com",
-//     role: "Property Buyer",
-//     status: "Active",
-//     joinDate: "2024-01-15",
-//     lastActive: "2024-01-20",
-//     verified: true,
-//     avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-//   },
-//   {
-//     id: 2,
-//     name: "Sarah Johnson",
-//     email: "sarah.johnson@realestate.com",
-//     role: "Real Estate Agent",
-//     status: "Pending Verification",
-//     joinDate: "2024-01-18",
-//     lastActive: "2024-01-19",
-//     verified: false,
-//     avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=100&h=100&fit=crop&crop=face",
-//   },
-//   {
-//     id: 3,
-//     name: "Michael Thompson",
-//     email: "michael.thompson@email.com",
-//     role: "Property Owner",
-//     status: "Suspended",
-//     joinDate: "2024-01-10",
-//     lastActive: "2024-01-17",
-//     verified: true,
-//     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-//   },
-// ]; // REMOVE this line and the array
-
-// Mock pending approvals
-// const mockPendingApprovals = [
-//   {
-//     id: 1,
-//     type: "Property Listing",
-//     title: "Luxury 4BR Penthouse",
-//     submittedBy: "Sarah Johnson",
-//     submittedDate: "2024-01-20",
-//     status: "Pending Review",
-//     priority: "High",
-//   },
-//   {
-//     id: 2,
-//     type: "Agent Verification",
-//     title: "License Verification",
-//     submittedBy: "David Okafor",
-//     submittedDate: "2024-01-19",
-//     status: "Pending Documents",
-//     priority: "Medium",
-//   },
-//   {
-//     id: 3,
-//     type: "Service Provider",
-//     title: "Engineering Services",
-//     submittedBy: "Engineer John Doe",
-//     submittedDate: "2024-01-18",
-//     status: "Pending Review",
-//     priority: "Low",
-//   },
-// ];
-
-// Mock support tickets
-// const mockSupportTickets = [
-//   {
-//     id: 1,
-//     user: "John Doe",
-//     subject: "Payment Issue",
-//     priority: "High",
-//     status: "Open",
-//     assignedTo: "Support Team",
-//     createdAt: "2024-01-20",
-//     lastUpdated: "2024-01-20",
-//   },
-//   {
-//     id: 2,
-//     user: "Sarah Johnson",
-//     subject: "Account Verification",
-//     priority: "Medium",
-//     status: "In Progress",
-//     assignedTo: "Admin",
-//     createdAt: "2024-01-19",
-//     lastUpdated: "2024-01-20",
-//   },
-//   {
-//     id: 3,
-//     user: "Michael Thompson",
-//     subject: "Property Listing Issue",
-//     priority: "Low",
-//     status: "Resolved",
-//     assignedTo: "Support Team",
-//     createdAt: "2024-01-18",
-//     lastUpdated: "2024-01-19",
-//   },
-// ];
-
-// Mock financial data
-const mockFinancialData = [
-  {
-    month: "January 2024",
-    revenue: "₦45,800,000",
-    transactions: 234,
-    commission: "₦4,580,000",
-    expenses: "₦2,300,000",
-    profit: "₦43,500,000",
-  },
-  {
-    month: "December 2023",
-    revenue: "₦38,200,000",
-    transactions: 198,
-    commission: "₦3,820,000",
-    expenses: "₦1,900,000",
-    profit: "₦36,300,000",
-  },
-  {
-    month: "November 2023",
-    revenue: "₦32,500,000",
-    transactions: 167,
-    commission: "₦3,250,000",
-    expenses: "₦1,600,000",
-    profit: "₦30,900,000",
-  },
-];
 
 const AdminDashboard = () => {
+  const { user } = useAuth();
+  const { profile, isLoading: profileLoading } = useUserProfile();
   const [activeTab, setActiveTab] = useState("overview");
   const [userFilter, setUserFilter] = useState("all");
+
+  // Real admin data
+  const adminData = {
+    name: user?.name || "Administrator",
+    email: user?.email || "",
+    phone: profile?.phone || user?.phone || "",
+    profilePhoto: user?.profilePhoto || profile?.avatar_url || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
+    joinDate: user ? new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "",
+    totalUsers: 0, // Will be calculated from real data
+    totalProperties: 0, // Will be calculated from real data
+    totalAgents: 0, // Will be calculated from real data
+    monthlyRevenue: "₦0", // Will be calculated from real data
+  };
   const [approvalFilter, setApprovalFilter] = useState("all");
   const [users, setUsers] = useState<any[]>([]); // TODO: type properly
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -198,6 +79,7 @@ const AdminDashboard = () => {
   const [financeSummary, setFinanceSummary] = useState<any>(null);
   const [loadingFinance, setLoadingFinance] = useState(false);
   const [financeError, setFinanceError] = useState<string | null>(null);
+  const [financialData, setFinancialData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -327,21 +209,46 @@ const AdminDashboard = () => {
       setLoadingFinance(true);
       setFinanceError(null);
       try {
-        // Total revenue: sum of all property prices
+        // Fetch properties with created_at for monthly breakdown
         const { data, error } = await supabase
           .from('properties')
-          .select('price');
+          .select('price, created_at');
         if (error) throw error;
+        
         const totalRevenue = (data || []).reduce((sum: number, p: any) => sum + (p.price || 0), 0);
         const totalCommission = totalRevenue * 0.1;
         const totalExpenses = totalRevenue * 0.05;
         const netProfit = totalRevenue - totalCommission - totalExpenses;
+        
         setFinanceSummary({
           totalRevenue,
           totalCommission,
           totalExpenses,
           netProfit,
         });
+
+        // Generate monthly financial data from properties
+        const monthlyData: { [key: string]: { revenue: number, transactions: number } } = {};
+        (data || []).forEach((property: any) => {
+          if (property.created_at && property.price) {
+            const date = new Date(property.created_at);
+            const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            if (!monthlyData[monthKey]) {
+              monthlyData[monthKey] = { revenue: 0, transactions: 0 };
+            }
+            monthlyData[monthKey].revenue += property.price * 0.1; // 10% commission
+            monthlyData[monthKey].transactions += 1;
+          }
+        });
+
+        // Convert to array format for display
+        const monthlyArray = Object.entries(monthlyData).map(([month, data]) => ({
+          month,
+          revenue: `₦${data.revenue.toLocaleString()}`,
+          transactions: data.transactions
+        }));
+
+        setFinancialData(monthlyArray);
       } catch (err: any) {
         setFinanceError(err.message || 'Failed to fetch financial data');
       } finally {
@@ -514,6 +421,7 @@ const AdminDashboard = () => {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            <ErrorBoundary>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* System Health */}
               <Card>
@@ -587,10 +495,12 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+            </ErrorBoundary>
           </TabsContent>
 
           {/* Users Tab */}
           <TabsContent value="users" className="space-y-6">
+            <ErrorBoundary>
             <div className="flex justify-between items-center">
               <div className="flex gap-2">
                 <Select value={userFilter} onValueChange={setUserFilter}>
@@ -613,83 +523,93 @@ const AdminDashboard = () => {
 
             <Card>
               <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          User
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Role
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Verified
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Last Active
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredUsers.map((user) => (
-                        <tr key={user.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <img
-                                className="h-10 w-10 rounded-full"
-                                src={"https://via.placeholder.com/50"}
-                                alt={user.email}
-                              />
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">
-                                  {user.email}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  ID: {user.id}
+                {filteredUsers.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            User
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Role
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Verified
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Last Active
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredUsers.map((user) => (
+                          <tr key={user.id}>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <img
+                                  className="h-10 w-10 rounded-full"
+                                  src={"https://via.placeholder.com/50"}
+                                  alt={user.email}
+                                />
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {user.email}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    ID: {user.id}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {user.role || "N/A"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge className={getStatusColor("active")}>Active</Badge>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {/* No is_verified field in profiles, so always show as not verified */}
-                            <XCircle className="h-5 w-5 text-red-500" />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {user.updated_at ? new Date(user.updated_at).toLocaleDateString() : "N/A"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex gap-2">
-                              <Button variant="ghost" size="sm">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {user.role || "N/A"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <Badge className={getStatusColor("active")}>Active</Badge>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {/* No is_verified field in profiles, so always show as not verified */}
+                              <XCircle className="h-5 w-5 text-red-500" />
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {user.updated_at ? new Date(user.updated_at).toLocaleDateString() : "N/A"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex gap-2">
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm">
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={Users}
+                    title="No Users Registered Yet"
+                    description="Welcome to your admin dashboard! No users have registered yet. Once people start signing up, you'll see their profiles and activity here."
+                    className="py-12"
+                  />
+                )}
               </CardContent>
             </Card>
+            </ErrorBoundary>
           </TabsContent>
 
           {/* Approvals Tab */}
@@ -709,15 +629,24 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {loadingApprovals ? (
+            {loadingApprovals ? (
+              <div className="text-center py-8">
                 <p>Loading approvals...</p>
-              ) : approvalsError ? (
+              </div>
+            ) : approvalsError ? (
+              <div className="text-center py-8">
                 <p className="text-red-500">{approvalsError}</p>
-              ) : filteredApprovals.length === 0 ? (
-                <p>No pending approvals found.</p>
-              ) : (
-                filteredApprovals.map((approval) => (
+              </div>
+            ) : filteredApprovals.length === 0 ? (
+              <EmptyState
+                icon={CheckCircle}
+                title="All Caught Up!"
+                description="No pending approvals at the moment. All property listings and documents have been reviewed. New submissions will appear here for your review."
+                className="py-12"
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredApprovals.map((approval) => (
                   <Card key={approval.id}>
                     <CardHeader>
                       <div className="flex justify-between items-start">
@@ -757,57 +686,60 @@ const AdminDashboard = () => {
                       </div>
                     </CardContent>
                   </Card>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Support Tab */}
           <TabsContent value="support" className="space-y-6">
             <Card>
               <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Ticket
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          User
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Priority
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Assigned To
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Created
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {loadingTickets ? (
+                {loadingTickets ? (
+                  <div className="text-center py-8">
+                    <p>Loading support tickets...</p>
+                  </div>
+                ) : ticketsError ? (
+                  <div className="text-center py-8">
+                    <p className="text-red-500">{ticketsError}</p>
+                  </div>
+                ) : supportTickets.length === 0 ? (
+                  <EmptyState
+                    icon={MessageSquare}
+                    title="No Support Tickets - Great Job!"
+                    description="Your platform is running smoothly! No support tickets have been submitted. Customer inquiries and issues will appear here when they need your attention."
+                    className="py-12"
+                  />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
                         <tr>
-                          <td colSpan={7} className="px-6 py-4 text-center">Loading support tickets...</td>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Ticket
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            User
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Priority
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Assigned To
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Created
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
                         </tr>
-                      ) : ticketsError ? (
-                        <tr>
-                          <td colSpan={7} className="px-6 py-4 text-center text-red-500">{ticketsError}</td>
-                        </tr>
-                      ) : supportTickets.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="px-6 py-4 text-center">No support tickets found.</td>
-                        </tr>
-                      ) : (
-                        supportTickets.map((ticket) => (
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {supportTickets.map((ticket) => (
                           <tr key={ticket.id}>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div>
@@ -846,11 +778,11 @@ const AdminDashboard = () => {
                               </div>
                             </td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -902,17 +834,26 @@ const AdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {mockFinancialData.map((data, index) => (
-                      <div key={index} className="flex justify-between items-center">
-                        <span className="text-sm">{data.month}</span>
-                        <div className="text-right">
-                          <div className="font-medium">{data.revenue}</div>
-                          <div className="text-xs text-gray-500">
-                            {data.transactions} transactions
+                    {financialData.length > 0 ? (
+                      financialData.map((data, index) => (
+                        <div key={index} className="flex justify-between items-center">
+                          <span className="text-sm">{data.month}</span>
+                          <div className="text-right">
+                            <div className="font-medium">{data.revenue}</div>
+                            <div className="text-xs text-gray-500">
+                              {data.transactions} transactions
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <EmptyState
+                        icon={TrendingUp}
+                        title="No Financial Data Yet"
+                        description="Financial insights will appear here once transactions begin"
+                        className="py-8"
+                      />
+                    )}
                   </div>
                 </CardContent>
               </Card>

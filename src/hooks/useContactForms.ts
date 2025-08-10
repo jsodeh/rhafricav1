@@ -90,19 +90,29 @@ export const useContactForms = () => {
         response_count: 0,
       };
 
-      // In a real implementation, submit to Supabase
-      // const { data, error } = await supabase
-      //   .from('contact_submissions')
-      //   .insert(submissionData)
-      //   .select()
-      //   .single();
+      // Submit to Supabase case_submissions as the unified intake table
+      const { data: created, error: insertError } = await supabase
+        .from('case_submissions')
+        .insert({
+          user_id: submissionData.user_id,
+          case_type: submissionData.form_type,
+          name: submissionData.name,
+          email: submissionData.email,
+          phone: submissionData.phone,
+          subject: submissionData.subject,
+          message: submissionData.message,
+          urgency: submissionData.urgency,
+          preferred_contact: submissionData.preferred_contact,
+          property_id: submissionData.property_id,
+          agent_id: submissionData.recipient_id,
+          status: submissionData.status,
+          priority_score: submissionData.priority_score,
+        })
+        .select()
+        .single();
 
-      // if (error) throw error;
-
-      // Simulate successful submission
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const submissionId = `sub_${Date.now()}`;
+      if (insertError) throw insertError;
+      const submissionId = created?.id || `sub_${Date.now()}`;
       
       // Send notification emails based on form type
       await sendNotifications(formData, submissionId);
@@ -192,10 +202,10 @@ export const useContactForms = () => {
     // In a real implementation, this would check agent availability,
     // workload, specialization, etc.
     const assignments = {
-      property: 'agent_sarah',
-      agent: 'agent_sarah',
+      property: 'support_team',
+      agent: 'support_team',
       service: 'support_team',
-      booking: 'agent_michael',
+      booking: 'support_team',
       support: 'support_team',
       general: 'support_team',
     };
@@ -299,43 +309,37 @@ export const useContactForms = () => {
 
     setIsLoading(true);
     try {
-      // In a real implementation, fetch from Supabase
-      // const { data, error } = await supabase
-      //   .from('contact_submissions')
-      //   .select('*')
-      //   .eq('user_id', user.id)
-      //   .order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('case_submissions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-      // if (error) throw error;
+      if (error) throw error;
 
-      // Simulate fetching submissions
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const mockSubmissions: ContactSubmission[] = [
-        {
-          id: 'sub_1',
-          name: user.email?.split('@')[0] || 'User',
-          email: user.email || '',
-          phone: '+234 xxx xxx xxxx',
-          subject: 'Property Inquiry - Victoria Island Apartment',
-          message: 'I am interested in viewing this property. Please contact me.',
-          preferredContact: 'email',
-          urgency: 'medium',
-          formType: 'property',
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-          status: 'in_progress',
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-          updated_at: new Date(Date.now() - 3600000).toISOString(),
-          assigned_to: 'agent_sarah',
-          response_count: 1,
-          last_response_at: new Date(Date.now() - 3600000).toISOString(),
-          priority_score: 3,
-          propertyId: 'prop_1',
-          agentId: 'agent_sarah',
-        },
-      ];
+      const mapped: ContactSubmission[] = (data || []).map((row: any) => ({
+        id: row.id,
+        name: row.name || user.email?.split('@')[0] || 'User',
+        email: row.email || user.email || '',
+        phone: row.phone || '',
+        subject: row.subject || row.case_type || 'Inquiry',
+        message: row.message || '',
+        preferredContact: row.preferred_contact || 'email',
+        urgency: (row.urgency || 'medium') as any,
+        formType: (row.case_type || 'general') as any,
+        timestamp: row.created_at,
+        status: (row.status || 'pending') as any,
+        created_at: row.created_at,
+        updated_at: row.updated_at || row.created_at,
+        assigned_to: row.assigned_to || undefined,
+        response_count: row.response_count || 0,
+        last_response_at: row.last_response_at || undefined,
+        priority_score: row.priority_score || 0,
+        propertyId: row.property_id || undefined,
+        agentId: row.agent_id || undefined,
+      }));
 
-      setSubmissions(mockSubmissions);
+      setSubmissions(mapped);
     } catch (err) {
       setError('Failed to fetch submissions');
       console.error('Error fetching submissions:', err);

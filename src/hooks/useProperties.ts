@@ -31,6 +31,7 @@ export const useProperties = (filters?: PropertyFilters) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     fetchProperties();
@@ -105,6 +106,14 @@ export const useProperties = (filters?: PropertyFilters) => {
     } catch (err: any) {
       console.error('Error fetching properties:', err);
       setError(err.message);
+      // Auto-retry up to 3 times with exponential backoff
+      if (retryCount < 3) {
+        const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+        setTimeout(() => {
+          setRetryCount((prev) => prev + 1);
+          fetchProperties();
+        }, delay);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -255,7 +264,14 @@ export const useProperties = (filters?: PropertyFilters) => {
     isLoading,
     error,
     totalCount,
+    isEmpty: !isLoading && properties.length === 0,
     refetch: fetchProperties,
+    retry: () => {
+      setRetryCount(0);
+      setError(null);
+      fetchProperties();
+    },
+    retryCount,
     getPropertyById,
     getFeaturedProperties,
     getPropertiesByAgent,

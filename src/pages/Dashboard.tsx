@@ -81,23 +81,8 @@ const Dashboard = () => {
     }
   }, [activitiesError, showError]);
 
-  useEffect(() => {
-    // Redirect to role-specific dashboard if user type is not buyer/renter
-    if (user?.accountType) {
-      const userType = user.accountType.toLowerCase();
-      if (userType.includes("agent")) {
-        navigate("/agent-dashboard");
-      } else if (userType.includes("owner") || userType.includes("landlord")) {
-        navigate("/owner-dashboard");
-      } else if (
-        userType.includes("service") ||
-        userType.includes("professional")
-      ) {
-        navigate("/service-dashboard");
-      }
-      // If buyer/renter, stay on current dashboard
-    }
-  }, [user, navigate]);
+  // Removed automatic redirection - users can choose their preferred dashboard
+  // Role-specific dashboards are available via navigation menu
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -365,13 +350,25 @@ const Dashboard = () => {
                       <span className="text-sm">Find Agents</span>
                     </Button>
                   </Link>
-                  <Button
-                    variant="outline"
-                    className="w-full h-16 flex flex-col gap-2"
-                  >
-                    <Plus className="h-5 w-5" />
-                    <span className="text-sm">List Property</span>
-                  </Button>
+                  {user?.accountType?.toLowerCase().includes('agent') ? (
+                    <Link to="/agent-dashboard">
+                      <Button
+                        variant="outline"
+                        className="w-full h-16 flex flex-col gap-2"
+                      >
+                        <User className="h-5 w-5" />
+                        <span className="text-sm">Agent Dashboard</span>
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="w-full h-16 flex flex-col gap-2"
+                    >
+                      <Plus className="h-5 w-5" />
+                      <span className="text-sm">List Property</span>
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -30,207 +30,45 @@ import {
   MessageCircle,
   Filter,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import EmptyState from "@/components/EmptyState";
 
-// Mock service provider data
-const mockProviderData = {
-  name: "Engineer John Doe",
-  email: "john.doe@engineering.com",
-  phone: "+234 803 456 7890",
-  license: "ENG-2024-001",
-  company: "Lagos Engineering Services",
-  specialization: "Structural Engineering",
-  experience: "12 years",
-  joinDate: "June 2020",
-  profilePhoto:
-    "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop&crop=face",
-  rating: 4.8,
-  totalReviews: 89,
-  completedJobs: 234,
-  activeBookings: 8,
-  monthlyEarnings: "₦1,850,000",
-};
 
-// Mock services data
-const mockServices = [
-  {
-    id: 1,
-    title: "Structural Assessment",
-    category: "Engineering",
-    price: "₦150,000",
-    duration: "2-3 days",
-    description:
-      "Comprehensive structural analysis and safety assessment of buildings",
-    image:
-      "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=600&h=400&fit=crop",
-    isActive: true,
-    bookings: 23,
-    avgRating: 4.9,
-  },
-  {
-    id: 2,
-    title: "Building Plan Review",
-    category: "Architecture",
-    price: "₦75,000",
-    duration: "1-2 days",
-    description:
-      "Professional review of architectural plans and building designs",
-    image:
-      "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&h=400&fit=crop",
-    isActive: true,
-    bookings: 18,
-    avgRating: 4.7,
-  },
-  {
-    id: 3,
-    title: "Property Inspection",
-    category: "Inspection",
-    price: "₦50,000",
-    duration: "4-6 hours",
-    description: "Detailed property inspection for buyers and sellers",
-    image:
-      "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&h=400&fit=crop",
-    isActive: true,
-    bookings: 45,
-    avgRating: 4.8,
-  },
-];
 
-// Mock bookings data
-const mockBookings = [
-  {
-    id: 1,
-    serviceId: 1,
-    serviceTitle: "Structural Assessment",
-    client: {
-      name: "Michael Thompson",
-      avatar:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-      phone: "+234 802 345 6789",
-      email: "michael.thompson@email.com",
-    },
-    property: {
-      title: "4BR Duplex - Lekki",
-      address: "123 Admiralty Way, Lekki, Lagos",
-    },
-    status: "Confirmed",
-    scheduledDate: "2024-01-25",
-    scheduledTime: "10:00 AM",
-    price: "₦150,000",
-    notes: "Focus on foundation and load-bearing walls",
-    bookingDate: "2024-01-20",
-  },
-  {
-    id: 2,
-    serviceId: 3,
-    serviceTitle: "Property Inspection",
-    client: {
-      name: "Sarah Williams",
-      avatar:
-        "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=100&h=100&fit=crop&crop=face",
-      phone: "+234 804 567 8901",
-      email: "sarah.williams@email.com",
-    },
-    property: {
-      title: "3BR Apartment - Victoria Island",
-      address: "456 Ozumba Mbadiwe, Victoria Island, Lagos",
-    },
-    status: "In Progress",
-    scheduledDate: "2024-01-22",
-    scheduledTime: "2:00 PM",
-    price: "₦50,000",
-    notes: "Pre-purchase inspection for buyer",
-    bookingDate: "2024-01-18",
-  },
-  {
-    id: 3,
-    serviceId: 2,
-    serviceTitle: "Building Plan Review",
-    client: {
-      name: "David Okafor",
-      avatar:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-      phone: "+234 803 789 0123",
-      email: "david.okafor@email.com",
-    },
-    property: {
-      title: "New Commercial Building",
-      address: "Plot 789, Central Business District, Abuja",
-    },
-    status: "Completed",
-    scheduledDate: "2024-01-15",
-    scheduledTime: "9:00 AM",
-    price: "₦75,000",
-    notes: "Review for planning approval submission",
-    bookingDate: "2024-01-12",
-    completedDate: "2024-01-16",
-  },
-];
 
-// Mock reviews data
-const mockReviews = [
-  {
-    id: 1,
-    client: "Michael Thompson",
-    clientAvatar:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-    service: "Structural Assessment",
-    rating: 5,
-    comment:
-      "Excellent work! Very thorough and professional. The report was detailed and helped us make an informed decision.",
-    date: "2024-01-18",
-    verified: true,
-  },
-  {
-    id: 2,
-    client: "Sarah Williams",
-    clientAvatar:
-      "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=100&h=100&fit=crop&crop=face",
-    service: "Property Inspection",
-    rating: 5,
-    comment:
-      "Found issues that could have cost us significantly later. Great attention to detail and very communicative throughout the process.",
-    date: "2024-01-16",
-    verified: true,
-  },
-  {
-    id: 3,
-    client: "David Okafor",
-    clientAvatar:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-    service: "Building Plan Review",
-    rating: 4,
-    comment:
-      "Professional service and quick turnaround. The feedback was valuable for our project approval.",
-    date: "2024-01-14",
-    verified: true,
-  },
-];
 
-// Mock earnings data
-const mockEarnings = [
-  {
-    month: "January 2024",
-    earnings: "₦1,250,000",
-    jobs: 18,
-    hours: 145,
-  },
-  {
-    month: "December 2023",
-    earnings: "₦1,680,000",
-    jobs: 22,
-    hours: 168,
-  },
-  {
-    month: "November 2023",
-    earnings: "₦1,420,000",
-    jobs: 20,
-    hours: 156,
-  },
-];
+// Temporary mock data fallbacks to avoid runtime errors in test/runtime
+// when demo datasets are not defined. These will be replaced by real data.
+const mockBookings: any[] = Array.isArray((globalThis as any).mockBookings)
+  ? (globalThis as any).mockBookings
+  : [];
 
+const mockEarnings: Array<{ month: string; earnings: string; jobs: number; hours: number }> = Array.isArray((globalThis as any).mockEarnings)
+  ? (globalThis as any).mockEarnings
+  : [];
 const ServiceProviderDashboard = () => {
+  const { user } = useAuth();
+  const { profile, isLoading: profileLoading } = useUserProfile();
   const [activeTab, setActiveTab] = useState("overview");
   const [bookingFilter, setBookingFilter] = useState("all");
+
+  // Real service provider data
+  const providerData = {
+    name: user?.name || "Service Provider",
+    email: user?.email || "",
+    phone: profile?.phone || user?.phone || "",
+    profilePhoto: user?.profilePhoto || profile?.avatar_url || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
+    joinDate: user ? new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "",
+    specialization: profile?.specialization || "Professional Services",
+    experience: profile?.experience_years ? `${profile.experience_years} years` : "Experienced",
+    rating: 0, // Will be calculated from real reviews
+    totalReviews: 0, // Will be fetched from database
+    activeBookings: 0, // Will be calculated from real data
+    completedJobs: 0, // Will be calculated from real data
+    monthlyEarnings: "₦0", // Will be calculated from real data
+    responseTime: "< 2 hours", // Default response time
+  };
 
   const filteredBookings = mockBookings.filter((booking) => {
     if (bookingFilter === "all") return true;
@@ -246,8 +84,8 @@ const ServiceProviderDashboard = () => {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
           <div className="flex items-center gap-4">
             <img
-              src={mockProviderData.profilePhoto}
-              alt={mockProviderData.name}
+              src={providerData.profilePhoto}
+              alt={providerData.name}
               className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg"
             />
             <div>
@@ -255,18 +93,18 @@ const ServiceProviderDashboard = () => {
                 Service Provider Dashboard
               </h1>
               <p className="text-gray-600">
-                {mockProviderData.name} ��� {mockProviderData.specialization}
+                {providerData.name} ��� {providerData.specialization}
               </p>
               <div className="flex items-center gap-2 mt-1">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                 <span className="text-sm font-medium">
-                  {mockProviderData.rating}
+                  {providerData.rating}
                 </span>
                 <span className="text-sm text-gray-500">
-                  ({mockProviderData.totalReviews} reviews)
+                  ({providerData.totalReviews} reviews)
                 </span>
                 <Badge variant="outline" className="ml-2">
-                  {mockProviderData.experience} experience
+                  {providerData.experience} experience
                 </Badge>
               </div>
             </div>
@@ -297,7 +135,7 @@ const ServiceProviderDashboard = () => {
                     Active Bookings
                   </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {mockProviderData.activeBookings}
+                    {providerData.activeBookings}
                   </p>
                 </div>
                 <Calendar className="h-8 w-8 text-blue-500" />
@@ -313,7 +151,7 @@ const ServiceProviderDashboard = () => {
                     Completed Jobs
                   </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {mockProviderData.completedJobs}
+                    {providerData.completedJobs}
                   </p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-500" />
@@ -329,7 +167,7 @@ const ServiceProviderDashboard = () => {
                     Monthly Earnings
                   </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {mockProviderData.monthlyEarnings}
+                    {providerData.monthlyEarnings}
                   </p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-500" />
@@ -345,7 +183,7 @@ const ServiceProviderDashboard = () => {
                     Avg. Rating
                   </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {mockProviderData.rating}/5
+                    {providerData.rating}/5
                   </p>
                 </div>
                 <Star className="h-8 w-8 text-yellow-500" />
@@ -443,7 +281,7 @@ const ServiceProviderDashboard = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">This Month</span>
                       <span className="font-semibold">
-                        {mockEarnings[0].earnings}
+                        {mockEarnings[0]?.earnings ?? '₦0'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -451,7 +289,7 @@ const ServiceProviderDashboard = () => {
                         Jobs Completed
                       </span>
                       <span className="font-semibold">
-                        {mockEarnings[0].jobs}
+                        {mockEarnings[0]?.jobs ?? 0}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -459,7 +297,7 @@ const ServiceProviderDashboard = () => {
                         Hours Worked
                       </span>
                       <span className="font-semibold">
-                        {mockEarnings[0].hours}h
+                        {mockEarnings[0]?.hours ?? 0}h
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -467,7 +305,7 @@ const ServiceProviderDashboard = () => {
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                         <span className="font-semibold">
-                          {mockProviderData.rating}
+                          {providerData.rating}
                         </span>
                       </div>
                     </div>
@@ -525,8 +363,12 @@ const ServiceProviderDashboard = () => {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {mockServices.map((service) => (
+            {/* Real services will be fetched from database */}
+            {(() => {
+              const services: any[] = []; // TODO: Replace with real data from database
+              return services.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {services.map((service) => (
                 <Card
                   key={service.id}
                   className="overflow-hidden hover:shadow-lg transition-shadow"
@@ -597,7 +439,23 @@ const ServiceProviderDashboard = () => {
                   </CardContent>
                 </Card>
               ))}
-            </div>
+                </div>
+              ) : (
+                <EmptyState
+                  icon={Wrench}
+                  title="No Service Requests Yet"
+                  description="Your opportunities will appear here! Start by adding your services and promoting your expertise to attract customers."
+                  action={{
+                    label: "Add New Service",
+                    onClick: () => {
+                      // TODO: Navigate to add service page
+                      console.log("Navigate to add service");
+                    }
+                  }}
+                  className="py-12"
+                />
+              );
+            })()}
           </TabsContent>
 
           <TabsContent value="bookings" className="space-y-6">
@@ -705,15 +563,19 @@ const ServiceProviderDashboard = () => {
               <h2 className="text-2xl font-semibold">Client Reviews</h2>
               <div className="flex items-center gap-2">
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                <span className="font-semibold">{mockProviderData.rating}</span>
+                <span className="font-semibold">{providerData.rating}</span>
                 <span className="text-gray-600">
-                  ({mockProviderData.totalReviews} reviews)
+                  ({providerData.totalReviews} reviews)
                 </span>
               </div>
             </div>
 
-            <div className="space-y-6">
-              {mockReviews.map((review) => (
+            {/* Real reviews will be fetched from database */}
+            {(() => {
+              const reviews: any[] = []; // TODO: Replace with real data from database
+              return reviews.length > 0 ? (
+                <div className="space-y-6">
+                  {reviews.map((review) => (
                 <Card key={review.id}>
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
@@ -762,7 +624,16 @@ const ServiceProviderDashboard = () => {
                   </CardContent>
                 </Card>
               ))}
-            </div>
+                </div>
+              ) : (
+                <EmptyState
+                  icon={Star}
+                  title="No Reviews Yet"
+                  description="Customer reviews will be displayed here once you complete jobs. Provide excellent service to start building your reputation!"
+                  className="py-12"
+                />
+              );
+            })()}
           </TabsContent>
 
           <TabsContent value="earnings" className="space-y-6">
@@ -782,10 +653,10 @@ const ServiceProviderDashboard = () => {
                       This Month
                     </p>
                     <p className="text-3xl font-bold text-green-600">
-                      {mockEarnings[0].earnings}
+                      {mockEarnings[0]?.earnings ?? '₦0'}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
-                      {mockEarnings[0].jobs} jobs completed
+                        {(mockEarnings[0]?.jobs ?? 0)} jobs completed
                     </p>
                   </div>
                 </CardContent>
@@ -812,7 +683,7 @@ const ServiceProviderDashboard = () => {
                       Hours Worked
                     </p>
                     <p className="text-3xl font-bold text-purple-600">
-                      {mockEarnings[0].hours}h
+                       {(mockEarnings[0]?.hours ?? 0)}h
                     </p>
                     <p className="text-sm text-gray-500 mt-1">This month</p>
                   </div>
@@ -874,7 +745,7 @@ const ServiceProviderDashboard = () => {
                     </label>
                     <input
                       type="text"
-                      value={mockProviderData.name}
+                      value={providerData.name}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
                       readOnly
                     />
@@ -885,7 +756,7 @@ const ServiceProviderDashboard = () => {
                     </label>
                     <input
                       type="text"
-                      value={mockProviderData.specialization}
+                      value={providerData.specialization}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
                       readOnly
                     />
@@ -896,7 +767,7 @@ const ServiceProviderDashboard = () => {
                     </label>
                     <input
                       type="text"
-                      value={mockProviderData.license}
+                      value={providerData.license}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
                       readOnly
                     />
@@ -907,7 +778,7 @@ const ServiceProviderDashboard = () => {
                     </label>
                     <input
                       type="text"
-                      value={mockProviderData.experience}
+                      value={providerData.experience}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
                       readOnly
                     />
