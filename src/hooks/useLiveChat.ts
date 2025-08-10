@@ -28,6 +28,7 @@ export interface ChatConversation {
   priority: 'high' | 'medium' | 'low';
   created_at: string;
   updated_at: string;
+  agent_avatar?: string;
   metadata?: {
     customer_name?: string;
     customer_email?: string;
@@ -91,7 +92,30 @@ export const useLiveChat = () => {
       .contains('participants', [user.id])
       .order('updated_at', { ascending: false });
     if (error) throw error;
-    return (data || []) as unknown as ChatConversation[];
+    const convs = (data || []) as unknown as ChatConversation[];
+    // Enrich with agent avatars
+    const agentIds = Array.from(
+      new Set(
+        convs
+          .map((c) => c.participants.find((p) => p !== user.id) || c.metadata?.agent_assigned)
+          .filter((v): v is string => Boolean(v))
+      )
+    );
+    if (agentIds.length > 0) {
+      const { data: agents } = await supabase
+        .from('real_estate_agents')
+        .select('id, profile_image_url, agency_name, phone')
+        .in('id', agentIds);
+      const idToAvatar: Record<string, string> = {};
+      (agents || []).forEach((a: any) => {
+        idToAvatar[a.id] = a.profile_image_url || '/placeholder.svg';
+      });
+      return convs.map((c) => {
+        const agentId = c.participants.find((p) => p !== user.id) || c.metadata?.agent_assigned || '';
+        return { ...c, agent_avatar: idToAvatar[agentId] || '/placeholder.svg' };
+      });
+    }
+    return convs;
   }, [user]);
 
   // Fetch messages from Supabase
@@ -116,7 +140,27 @@ export const useLiveChat = () => {
 
       const convs = await fetchConversationsFromDb();
       setConversations(convs);
-      const totalUnread = convs.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
+      // Compute unread counts for all conversations with one query
+      const ids = convs.map((c) => c.id);
+      if (ids.length > 0) {
+        const { data: unreadRows } = await supabase
+          .from('case_messages')
+          .select('conversation_id, receiver_id, read_at')
+          .in('conversation_id', ids);
+        const unreadMap = new Map<string, number>();
+        (unreadRows || []).forEach((m: any) => {
+          if (m.receiver_id === user.id && !m.read_at) {
+            unreadMap.set(m.conversation_id, (unreadMap.get(m.conversation_id) || 0) + 1);
+          }
+        });
+        setConversations((prev) => prev.map((c) => ({ ...c, unread_count: unreadMap.get(c.id) || 0 })));
+      }
+      const totalUnread = (ids.length > 0)
+        ? (await supabase
+            .from('case_messages')
+            .select('conversation_id, receiver_id, read_at')
+            .in('conversation_id', ids)).data?.filter((m: any) => m.receiver_id === user.id && !m.read_at).length || 0
+        : 0;
       setUnreadTotal(totalUnread);
     } catch (err) {
       setError('Failed to fetch conversations');
@@ -191,8 +235,15 @@ export const useLiveChat = () => {
         )
       );
 
-      // In a real implementation, send to Supabase
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Persist to Supabase
+      await supabase.from('case_messages').insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        receiver_id: receiverId,
+        content,
+        message_type: messageType,
+        read_at: null,
+      });
 
       return newMessage;
     } catch (err) {
@@ -307,6 +358,14 @@ export const useLiveChat = () => {
 
       // Update total unread count
       setUnreadTotal(prev => Math.max(0, prev - 1));
+
+      // Persist read status in Supabase
+      await supabase
+        .from('case_messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('conversation_id', conversationId)
+        .eq('receiver_id', user.id)
+        .is('read_at', null);
     } catch (err) {
       console.error('Error marking messages as read:', err);
     }

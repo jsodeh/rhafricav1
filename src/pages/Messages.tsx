@@ -171,7 +171,7 @@ const Messages = () => {
                       >
                         <div className="flex items-start space-x-3">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src="/placeholder.svg" />
+                            <AvatarImage src={(conversation as any).agent_avatar || "/placeholder.svg"} />
                             <AvatarFallback>
                               {conversation.agent?.agency_name?.charAt(0) || "A"}
                             </AvatarFallback>
@@ -192,9 +192,7 @@ const Messages = () => {
                               {conversation.last_message}
                             </p>
                             {conversation.unread_count > 0 && (
-                              <Badge variant="destructive" className="mt-1">
-                                {conversation.unread_count}
-                              </Badge>
+                              <Badge variant="destructive" className="mt-1">{conversation.unread_count}</Badge>
                             )}
                           </div>
                         </div>
@@ -214,8 +212,8 @@ const Messages = () => {
                 <CardHeader className="border-b">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src="/placeholder.svg" />
+                       <Avatar className="h-10 w-10">
+                        <AvatarImage src={(activeConv as any).agent_avatar || "/placeholder.svg"} />
                         <AvatarFallback>
                           {activeConv.agent?.agency_name?.charAt(0) || "A"}
                         </AvatarFallback>
@@ -278,8 +276,11 @@ const Messages = () => {
                   </ScrollArea>
                 </div>
 
-                {/* Message Input */}
+                 {/* Typing indicator + Message Input */}
                 <div className="p-4 border-t">
+                  {/* Typing indicator area (simplified) */}
+                  {/* In a full implementation, wire to useLiveChat.getTypingUsers */}
+                  <div className="mb-2 h-5 text-xs text-gray-500" />
                   <div className="flex space-x-2">
                     <Input
                       placeholder="Type your message..."
