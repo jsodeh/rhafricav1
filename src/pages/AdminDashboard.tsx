@@ -73,6 +73,10 @@ const AdminDashboard = () => {
   const [approvals, setApprovals] = useState<any[]>([]);
   const [loadingApprovals, setLoadingApprovals] = useState(false);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
+  // Agent approvals state
+  const [pendingAgents, setPendingAgents] = useState<any[]>([]);
+  const [loadingAgents, setLoadingAgents] = useState(false);
+  const [agentsError, setAgentsError] = useState<string | null>(null);
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [ticketsError, setTicketsError] = useState<string | null>(null);
@@ -174,6 +178,55 @@ const AdminDashboard = () => {
     };
     fetchApprovals();
   }, []);
+
+  // Fetch pending agent approvals
+  useEffect(() => {
+    const fetchPendingAgents = async () => {
+      setLoadingAgents(true);
+      setAgentsError(null);
+      try {
+        const { data, error } = await supabase
+          .from('real_estate_agents')
+          .select('*')
+          .eq('verification_status', 'pending');
+        if (error) throw error;
+        setPendingAgents(data || []);
+      } catch (err: any) {
+        setAgentsError(err.message || 'Failed to fetch pending agents');
+      } finally {
+        setLoadingAgents(false);
+      }
+    };
+    fetchPendingAgents();
+  }, []);
+
+  const approveAgent = async (agentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('real_estate_agents')
+        .update({ verification_status: 'verified' })
+        .eq('id', agentId);
+      if (error) throw error;
+      setPendingAgents((prev) => prev.filter((a) => a.id !== agentId));
+    } catch (err) {
+      console.error('Failed to approve agent', err);
+      setAgentsError((err as any)?.message || 'Failed to approve agent');
+    }
+  };
+
+  const rejectAgent = async (agentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('real_estate_agents')
+        .update({ verification_status: 'rejected' })
+        .eq('id', agentId);
+      if (error) throw error;
+      setPendingAgents((prev) => prev.filter((a) => a.id !== agentId));
+    } catch (err) {
+      console.error('Failed to reject agent', err);
+      setAgentsError((err as any)?.message || 'Failed to reject agent');
+    }
+  };
 
   useEffect(() => {
     const fetchSupportTickets = async () => {
@@ -614,6 +667,59 @@ const AdminDashboard = () => {
 
           {/* Approvals Tab */}
           <TabsContent value="approvals" className="space-y-6">
+            {/* Agent Approvals */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <UserCheck className="h-5 w-5" /> Agent Approvals
+                </h3>
+              </div>
+              {loadingAgents ? (
+                <div className="text-center py-6">Loading agent approvals...</div>
+              ) : agentsError ? (
+                <div className="text-center py-6 text-red-600">{agentsError}</div>
+              ) : pendingAgents.length === 0 ? (
+                <EmptyState
+                  icon={UserCheck}
+                  title="No Pending Agent Approvals"
+                  description="When agents sign up, their accounts will appear here for review."
+                  className="py-8"
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {pendingAgents.map((agent) => (
+                    <Card key={agent.id}>
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle className="text-lg">{agent.agency_name || 'Agent'}</CardTitle>
+                            <p className="text-sm text-gray-500">License: {agent.license_number || 'N/A'}</p>
+                          </div>
+                          <Badge className={getStatusColor('pending')}>Pending</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="text-sm text-gray-700">
+                          <div>Phone: {agent.phone || 'N/A'}</div>
+                          <div>Experience: {agent.years_experience ?? 'N/A'}</div>
+                          <div>Submitted: {agent.created_at ? new Date(agent.created_at).toLocaleDateString() : 'N/A'}</div>
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                          <Button size="sm" className="flex-1" onClick={() => approveAgent(agent.id)}>
+                            <CheckCircle className="h-4 w-4 mr-1" /> Approve
+                          </Button>
+                          <Button size="sm" variant="outline" className="flex-1" onClick={() => rejectAgent(agent.id)}>
+                            <XCircle className="h-4 w-4 mr-1" /> Reject
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Property Approvals */}
             <div className="flex justify-between items-center">
               <div className="flex gap-2">
                 <Select value={approvalFilter} onValueChange={setApprovalFilter}>

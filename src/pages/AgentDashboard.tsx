@@ -43,41 +43,7 @@ import EmptyState from "@/components/EmptyState";
 
 // Clients section will render an empty state until a proper CRM is integrated
 
-// Recent activities placeholder (empty)
-const mockActivities: any[] = [
-  {
-    id: 1,
-    type: "inquiry",
-    message: "New inquiry on Modern 3-Bedroom Apartment",
-    client: "David Okonkwo",
-    time: "2 hours ago",
-    icon: MessageCircle,
-  },
-  {
-    id: 2,
-    type: "tour",
-    message: "Scheduled tour for Luxury 4BR Penthouse",
-    client: "Mrs. Adebisi",
-    time: "4 hours ago",
-    icon: Calendar,
-  },
-  {
-    id: 3,
-    type: "listing",
-    message: "Family House with Garden marked as sold",
-    client: "",
-    time: "1 day ago",
-    icon: Home,
-  },
-  {
-    id: 4,
-    type: "client",
-    message: "Added new client: James Chen",
-    client: "James Chen",
-    time: "2 days ago",
-    icon: Users,
-  },
-];
+// No mock activities; will show an empty state until real activity feed is integrated
 
 const AgentDashboard = () => {
   const { user } = useAuth();
@@ -91,8 +57,8 @@ const AgentDashboard = () => {
     name: user?.name || "Agent",
     email: user?.email || "",
     phone: profile?.phone || user?.phone || "",
-    license: profile?.license_number || "Not provided",
-    company: profile?.agency_name || "Real Estate Hotspot",
+    license: "Not provided",
+    company: "Real Estate Hotspot",
     joinDate: user ? new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "",
     profilePhoto: user?.profilePhoto || profile?.avatar_url || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
     rating: 0, // Will be calculated from real reviews
@@ -253,43 +219,37 @@ const AgentDashboard = () => {
                     </Button>
                   </Link>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                 <CardContent className="space-y-4">
                   {filteredListings.slice(0, 3).map((listing: any) => (
                     <div
                       key={listing.id}
                       className="flex gap-3 p-3 border rounded-lg hover:bg-gray-50"
                     >
                       <img
-                       src={(listing.images && listing.images[0]) || '/placeholder.svg'}
-                        alt={listing.title}
+                        src={(listing.images && listing.images[0]) || '/placeholder.svg'}
+                        alt={listing.title || 'Property'}
                         className="w-16 h-12 object-cover rounded"
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-gray-900 truncate">
-                          {listing.title}
+                          {listing.title || 'Untitled Property'}
                         </h4>
                         <p className="text-sm text-gray-600">
                            {`${listing.address || ''}${listing.city ? `, ${listing.city}` : ''}`}
                         </p>
                         <div className="flex items-center justify-between mt-1">
                           <span className="font-semibold text-blue-700">
-                             {`₦${Number(listing.price || 0).toLocaleString()}`}
+                            {`₦${Number(listing.price || 0).toLocaleString()}`}
                           </span>
                           <Badge
-                            variant={
-                              listing.status === "Active"
-                                ? "default"
-                                : listing.status === "Sold"
-                                  ? "destructive"
-                                  : "secondary"
-                            }
+                            variant={((listing.status || '').toString().toLowerCase() === 'sold' || (listing.status || '').toString().toLowerCase() === 'off_market') ? 'destructive' : 'default'}
                           >
-                             {(listing.status || '').toString()}
+                            {(listing.status || '').toString()}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
                            <span>{listing.views_count || 0} views</span>
-                           <span>{/* inquiries count to be integrated */}0 inquiries</span>
+                           <span>0 inquiries</span>
                            <span>0 tours</span>
                         </div>
                       </div>
@@ -307,33 +267,14 @@ const AgentDashboard = () => {
                   </Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {mockActivities.length > 0 ? (
-                    mockActivities.map((activity) => (
-                      <div key={activity.id} className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <activity.icon className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-900">
-                            {activity.message}
-                          </p>
-                          {activity.client && (
-                            <p className="text-xs text-blue-600">
-                              {activity.client}
-                            </p>
-                          )}
-                          <p className="text-xs text-gray-500">{activity.time}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
+                  {true ? (
                     <EmptyState
                       icon={MessageCircle}
                       title="No Recent Activity"
                       description="Your latest listing and client activities will appear here."
                       className="py-8"
                     />
-                  )}
+                  ) : null}
                 </CardContent>
               </Card>
             </div>
@@ -400,15 +341,15 @@ const AgentDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredListings.map((listing) => (
+              {filteredListings.map((listing: any) => (
                 <Card
                   key={listing.id}
                   className="overflow-hidden hover:shadow-lg transition-shadow"
                 >
                   <div className="relative">
                     <img
-                      src={listing.image}
-                      alt={listing.title}
+                      src={(listing.images && listing.images[0]) || '/placeholder.svg'}
+                      alt={listing.title || 'Property'}
                       className="w-full h-48 object-cover"
                     />
                     <div className="absolute top-3 right-3 flex gap-2">
@@ -429,57 +370,53 @@ const AgentDashboard = () => {
                     </div>
                     <Badge
                       className={`absolute top-3 left-3 ${
-                        listing.status === "Active"
-                          ? "bg-green-600"
-                          : listing.status === "Sold"
-                            ? "bg-red-600"
-                            : "bg-yellow-600"
+                        ((listing.status || '').toString().toLowerCase() === 'sold' || (listing.status || '').toString().toLowerCase() === 'off_market')
+                          ? 'bg-red-600'
+                          : 'bg-green-600'
                       }`}
                     >
-                      {listing.status}
+                      {(listing.status || '').toString()}
                     </Badge>
                   </div>
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
                       <span className="text-xl font-bold text-blue-700">
-                        {listing.price}
+                        {`₦${Number(listing.price || 0).toLocaleString()}`}
                       </span>
-                      <span className="text-sm text-gray-500">
-                        {listing.daysOnMarket} days
-                      </span>
+                      <span className="text-sm text-gray-500">{listing.listing_type || ''}</span>
                     </div>
                     <h3 className="font-semibold text-gray-900 mb-2">
-                      {listing.title}
+                      {listing.title || 'Untitled Property'}
                     </h3>
                     <div className="flex items-center gap-2 text-gray-600 mb-3">
                       <MapPin className="h-4 w-4" />
-                      <span className="text-sm">{listing.location}</span>
+                      <span className="text-sm">{`${listing.address || ''}${listing.city ? `, ${listing.city}` : ''}`}</span>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
                       <div className="flex items-center gap-1">
                         <Bed className="h-4 w-4" />
-                        <span>{listing.bedrooms}</span>
+                        <span>{listing.bedrooms ?? 0}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Bath className="h-4 w-4" />
-                        <span>{listing.bathrooms}</span>
+                        <span>{listing.bathrooms ?? 0}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Square className="h-4 w-4" />
-                        <span>{listing.area}</span>
+                        <span>{listing.area_sqm ? `${listing.area_sqm} sqm` : 'N/A'}</span>
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-center text-xs bg-gray-50 p-2 rounded mb-3">
                       <div>
-                        <div className="font-semibold">{listing.views}</div>
+                        <div className="font-semibold">{listing.views_count || 0}</div>
                         <div className="text-gray-500">Views</div>
                       </div>
                       <div>
-                        <div className="font-semibold">{listing.inquiries}</div>
+                        <div className="font-semibold">0</div>
                         <div className="text-gray-500">Inquiries</div>
                       </div>
                       <div>
-                        <div className="font-semibold">{listing.tours}</div>
+                        <div className="font-semibold">0</div>
                         <div className="text-gray-500">Tours</div>
                       </div>
                     </div>
@@ -509,59 +446,12 @@ const AgentDashboard = () => {
             </div>
 
             <div className="space-y-4">
-              {mockClients.map((client) => (
-                <Card key={client.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <img
-                          src={client.avatar}
-                          alt={client.name}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {client.name}
-                          </h3>
-                          <div className="flex items-center gap-4 text-sm text-gray-600">
-                            <Badge variant="outline">{client.type}</Badge>
-                            <Badge
-                              variant={
-                                client.status === "Active"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
-                              {client.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1">
-                            Budget: {client.budget} • {client.preferences}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Last contact: {client.lastContact} • Source:{" "}
-                            {client.source}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Phone className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Mail className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <MessageCircle className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              <EmptyState
+                icon={Users}
+                title="No Clients Yet"
+                description="Your client list will appear here once you start engaging prospects and buyers."
+                className="py-12"
+              />
             </div>
           </TabsContent>
 

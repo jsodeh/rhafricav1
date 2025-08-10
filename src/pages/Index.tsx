@@ -733,7 +733,7 @@ const Index = () => {
           </div>
           {/* Lagos Skyline Silhouette Image - edge to edge, block element at bottom */}
           <img
-            src="/Generated%20sillhuoette.png"
+            src="/LagosSillhouette.png"
             alt="Lagos Skyline Silhouette"
             className="w-full h-40 object-cover mt-8"
             style={{ pointerEvents: 'none', userSelect: 'none' }}

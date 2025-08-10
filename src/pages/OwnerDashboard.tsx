@@ -41,42 +41,7 @@ import { useProperties } from "@/hooks/useProperties";
 
 
 
-// Mock maintenance requests
-const mockMaintenanceRequests = [
-  {
-    id: 1,
-    propertyId: 2,
-    propertyTitle: "4BR Duplex - Unit 5",
-    tenant: "N/A",
-    issue: "Plumbing leak in master bathroom",
-    priority: "High",
-    status: "Pending",
-    dateSubmitted: "2024-01-18",
-    description: "Water leaking from the shower area",
-  },
-  {
-    id: 2,
-    propertyId: 3,
-    propertyTitle: "2BR Flat - Ground Floor",
-    tenant: "Sarah Williams",
-    issue: "Air conditioning not working",
-    priority: "Medium",
-    status: "In Progress",
-    dateSubmitted: "2024-01-16",
-    description: "AC unit in living room stopped cooling",
-  },
-  {
-    id: 3,
-    propertyId: 2,
-    propertyTitle: "4BR Duplex - Unit 5",
-    tenant: "N/A",
-    issue: "Paint touch-up needed",
-    priority: "Low",
-    status: "Completed",
-    dateSubmitted: "2024-01-10",
-    description: "Minor paint chips in bedroom walls",
-  },
-];
+// No mock maintenance requests; show empty state until integrated
 
 
 const OwnerDashboard = () => {
@@ -99,7 +64,7 @@ const OwnerDashboard = () => {
   };
 
   // Fetch real properties (owned or by default all visibles)
-  const { properties, isLoading: propsLoading, error: propsError } = useProperties();
+  const { properties, isLoading: propsLoading, error: propsError, isEmpty: propsEmpty, retry: retryProps } = useProperties();
   const filteredProperties = (properties || []).filter((property) => {
     if (propertyFilter === "all") return true;
     return (property.status || '').toLowerCase() === propertyFilter.toLowerCase();
@@ -241,35 +206,35 @@ const OwnerDashboard = () => {
                   </Link>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {properties.slice(0, 3).map((property) => (
+                  {(properties || []).slice(0, 3).map((property: any) => (
                     <div
                       key={property.id}
                       className="flex gap-3 p-3 border rounded-lg hover:bg-gray-50"
                     >
                       <img
-                        src={property.image}
-                        alt={property.title}
+                        src={(property.images && property.images[0]) || '/placeholder.svg'}
+                        alt={property.title || 'Property'}
                         className="w-16 h-12 object-cover rounded"
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-gray-900 truncate">
-                          {property.title}
+                          {property.title || 'Untitled Property'}
                         </h4>
                         <p className="text-sm text-gray-600">
-                          {property.location}
+                          {`${property.address || ''}${property.city ? `, ${property.city}` : ''}`}
                         </p>
                         <div className="flex items-center justify-between mt-1">
                           <span className="font-semibold text-green-700">
-                            {property.rent}/month
+                            {`₦${Number(property.price || 0).toLocaleString()}`}
                           </span>
                           <Badge
                             variant={
-                              property.status === "Occupied"
+                              (property.status || '').toLowerCase() === 'occupied'
                                 ? "default"
                                 : "secondary"
                             }
                           >
-                            {property.status}
+                            {property.status || 'Vacant'}
                           </Badge>
                         </div>
                         {property.tenant && (
@@ -297,47 +262,14 @@ const OwnerDashboard = () => {
                   </Link>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {mockMaintenanceRequests.slice(0, 3).map((request) => (
-                    <div
-                      key={request.id}
-                      className="flex items-center gap-3 p-3 border rounded-lg"
-                    >
-                      <div
-                        className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                          request.priority === "High"
-                            ? "bg-red-500"
-                            : request.priority === "Medium"
-                              ? "bg-yellow-500"
-                              : "bg-green-500"
-                        }`}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
-                          {request.issue}
-                        </p>
-                        <p className="text-xs text-gray-600">
-                          {request.propertyTitle}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge
-                            variant={
-                              request.status === "Pending"
-                                ? "destructive"
-                                : request.status === "In Progress"
-                                  ? "default"
-                                  : "secondary"
-                            }
-                            className="text-xs"
-                          >
-                            {request.status}
-                          </Badge>
-                          <span className="text-xs text-gray-500">
-                            {request.dateSubmitted}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                  {true ? (
+                    <EmptyState
+                      icon={Wrench}
+                      title="No Maintenance Requests"
+                      description="Maintenance requests will appear here as tenants report issues from their portal."
+                      className="py-8"
+                    />
+                  ) : null}
                 </CardContent>
               </Card>
             </div>
@@ -411,8 +343,8 @@ const OwnerDashboard = () => {
                 >
                   <div className="relative">
                     <img
-                      src={property.image}
-                      alt={property.title}
+                      src={(property.images && property.images[0]) || '/placeholder.svg'}
+                      alt={property.title || 'Property'}
                       className="w-full h-48 object-cover"
                     />
                     <div className="absolute top-3 right-3 flex gap-2">
@@ -431,28 +363,17 @@ const OwnerDashboard = () => {
                         <Eye className="h-4 w-4" />
                       </Button>
                     </div>
-                    <Badge
-                      className={`absolute top-3 left-3 ${
-                        property.status === "Occupied"
-                          ? "bg-green-600"
-                          : "bg-orange-600"
-                      }`}
-                    >
-                      {property.status}
+                    <Badge className="absolute top-3 left-3 bg-green-600">
+                      {(property.status || '').toString()}
                     </Badge>
-                    {property.maintenanceIssues > 0 && (
-                      <Badge className="absolute bottom-3 left-3 bg-red-600">
-                        {property.maintenanceIssues} Issues
-                      </Badge>
-                    )}
                   </div>
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
                       <span className="text-xl font-bold text-green-700">
-                        {property.rent}/month
+                        {`₦${Number(property.price || 0).toLocaleString()}`}
                       </span>
                       <span className="text-sm text-gray-500">
-                        {property.type}
+                        {property.listing_type}
                       </span>
                     </div>
                     <h3 className="font-semibold text-gray-900 mb-2">
@@ -460,38 +381,23 @@ const OwnerDashboard = () => {
                     </h3>
                     <div className="flex items-center gap-2 text-gray-600 mb-3">
                       <MapPin className="h-4 w-4" />
-                      <span className="text-sm">{property.location}</span>
+                      <span className="text-sm">{`${property.address || ''}${property.city ? `, ${property.city}` : ''}`}</span>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
                       <div className="flex items-center gap-1">
                         <Bed className="h-4 w-4" />
-                        <span>{property.bedrooms}</span>
+                        <span>{property.bedrooms ?? 0}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Bath className="h-4 w-4" />
-                        <span>{property.bathrooms}</span>
+                        <span>{property.bathrooms ?? 0}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Square className="h-4 w-4" />
-                        <span>{property.area}</span>
+                        <span>{property.area_sqm ? `${property.area_sqm} sqm` : 'N/A'}</span>
                       </div>
                     </div>
-                    {property.tenant && (
-                      <div className="bg-gray-50 p-3 rounded mb-3">
-                        <p className="text-sm font-medium text-gray-900">
-                          Current Tenant
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {property.tenant}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Lease: {property.leaseStart} - {property.leaseEnd}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Last Payment: {property.lastPayment}
-                        </p>
-                      </div>
-                    )}
+                    {/* Tenant details integration pending */}
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="flex-1">
                         <Edit className="h-4 w-4 mr-1" />
@@ -611,71 +517,12 @@ const OwnerDashboard = () => {
             </div>
 
             <div className="space-y-4">
-              {mockMaintenanceRequests.map((request) => (
-                <Card key={request.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        <div
-                          className={`w-4 h-4 rounded-full mt-1 ${
-                            request.priority === "High"
-                              ? "bg-red-500"
-                              : request.priority === "Medium"
-                                ? "bg-yellow-500"
-                                : "bg-green-500"
-                          }`}
-                        />
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {request.issue}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {request.propertyTitle}
-                          </p>
-                          {request.tenant !== "N/A" && (
-                            <p className="text-sm text-gray-600">
-                              Reported by: {request.tenant}
-                            </p>
-                          )}
-                          <p className="text-sm text-gray-700 mt-2">
-                            {request.description}
-                          </p>
-                          <div className="flex items-center gap-4 mt-3">
-                            <Badge
-                              variant={
-                                request.status === "Pending"
-                                  ? "destructive"
-                                  : request.status === "In Progress"
-                                    ? "default"
-                                    : "secondary"
-                              }
-                            >
-                              {request.status}
-                            </Badge>
-                            <Badge variant="outline">
-                              {request.priority} Priority
-                            </Badge>
-                            <span className="text-xs text-gray-500">
-                              Submitted: {request.dateSubmitted}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        {request.status !== "Completed" && (
-                          <Button size="sm">
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Mark Complete
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              <EmptyState
+                icon={Wrench}
+                title="No Maintenance Requests"
+                description="When tenants submit maintenance requests, you'll see them here for quick action."
+                className="py-12"
+              />
             </div>
           </TabsContent>
 

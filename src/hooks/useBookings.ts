@@ -37,6 +37,7 @@ export const useBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const { user } = useAuth();
   const { processPropertyBooking } = usePayments();
 
@@ -47,57 +48,63 @@ export const useBookings = () => {
     try {
       setIsLoading(true);
       setError(null);
+      const { data, error } = await supabase
+        .from('property_viewings')
+        .select(`
+          id,
+          property_id,
+          user_id,
+          agent_id,
+          scheduled_date,
+          scheduled_time,
+          status,
+          notes,
+          created_at,
+          properties:properties(id,title,address,images),
+          agent:real_estate_agents(id,agency_name,phone)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-      // Simulate fetching bookings from Supabase
-      const mockBookings: Booking[] = [
-        {
-          id: 'booking_1',
-          property_id: '660e8400-e29b-41d4-a716-446655440001',
-          user_id: user.id,
-          agent_id: 'agent_1',
-          scheduled_date: '2024-01-25',
-          scheduled_time: '14:00',
-          status: 'confirmed',
-          notes: 'Interested in viewing the property',
-          created_at: new Date().toISOString(),
-          property: {
-            title: 'Modern 3-Bedroom Apartment',
-            address: '15 Ahmadu Bello Way, Victoria Island',
-            images: ['/placeholder.svg'],
-          },
-          agent: {
-            name: 'Sarah Johnson',
-            phone: '+234 801 234 5678',
-            email: 'sarah.johnson@realestate.com',
-          },
-        },
-        {
-          id: 'booking_2',
-          property_id: '660e8400-e29b-41d4-a716-446655440002',
-          user_id: user.id,
-          agent_id: 'agent_2',
-          scheduled_date: '2024-01-28',
-          scheduled_time: '10:00',
-          status: 'pending',
-          notes: 'Would like to see the garden area',
-          created_at: new Date().toISOString(),
-          property: {
-            title: 'Luxury 4-Bedroom Duplex',
-            address: '45 Admiralty Way, Lekki Phase 1',
-            images: ['/placeholder.svg'],
-          },
-          agent: {
-            name: 'Michael Adebayo',
-            phone: '+234 802 345 6789',
-            email: 'michael.adebayo@realestate.com',
-          },
-        },
-      ];
+      if (error) throw error;
 
-      setBookings(mockBookings);
+      const mapped: Booking[] = (data as any[] | null)?.map((b: any) => ({
+        id: b.id,
+        property_id: b.property_id,
+        user_id: b.user_id,
+        agent_id: b.agent_id,
+        scheduled_date: b.scheduled_date,
+        scheduled_time: b.scheduled_time,
+        status: (b.status || 'pending') as Booking['status'],
+        notes: b.notes,
+        created_at: b.created_at,
+        property: b.properties
+          ? {
+              title: b.properties.title,
+              address: b.properties.address,
+              images: b.properties.images || ['/placeholder.svg'],
+            }
+          : undefined,
+        agent: b.agent
+          ? {
+              name: b.agent.agency_name || 'Agent',
+              phone: b.agent.phone || '',
+              email: '',
+            }
+          : undefined,
+      })) || [];
+
+      setBookings(mapped);
     } catch (err) {
-      setError('Failed to fetch bookings');
+      setError((err as any)?.message || 'Failed to fetch bookings');
       console.error('Error fetching bookings:', err);
+      if (retryCount < 3) {
+        const delay = Math.pow(2, retryCount) * 1000;
+        setRetryCount((prev) => prev + 1);
+        setTimeout(() => {
+          fetchBookings();
+        }, delay);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -112,30 +119,39 @@ export const useBookings = () => {
     try {
       setIsLoading(true);
       setError(null);
-
-      const newBooking: Booking = {
-        id: `booking_${Date.now()}`,
+      const insert = {
         property_id: bookingData.propertyId,
         user_id: user.id,
         agent_id: bookingData.agentId,
         scheduled_date: bookingData.date,
         scheduled_time: bookingData.time,
-        status: 'pending',
+        status: 'pending' as const,
         notes: bookingData.notes,
-        created_at: new Date().toISOString(),
       };
 
-      // In a real implementation, you would insert to Supabase
-      // const { error } = await supabase
-      //   .from('property_viewings')
-      //   .insert(newBooking);
+      const { data, error } = await supabase
+        .from('property_viewings')
+        .insert(insert)
+        .select('*')
+        .single();
 
-      // if (error) throw error;
+      if (error) throw error;
 
-      // Add to local state
-      setBookings(prev => [...prev, newBooking]);
+      const created: Booking = {
+        id: data.id,
+        property_id: data.property_id,
+        user_id: data.user_id,
+        agent_id: data.agent_id,
+        scheduled_date: data.scheduled_date,
+        scheduled_time: data.scheduled_time,
+        status: data.status,
+        notes: data.notes,
+        created_at: data.created_at,
+      };
 
-      return newBooking;
+      setBookings(prev => [created, ...prev]);
+
+      return created;
     } catch (err) {
       setError('Failed to create booking');
       console.error('Error creating booking:', err);
@@ -150,23 +166,16 @@ export const useBookings = () => {
     try {
       setIsLoading(true);
       setError(null);
+      const { error } = await supabase
+        .from('property_viewings')
+        .update({ status: 'confirmed' })
+        .eq('id', bookingId);
 
-      // Update local state
-      setBookings(prev => 
-        prev.map(booking => 
-          booking.id === bookingId
-            ? { ...booking, status: 'confirmed' as const }
-            : booking
-        )
+      if (error) throw error;
+
+      setBookings(prev =>
+        prev.map(b => (b.id === bookingId ? { ...b, status: 'confirmed' } as Booking : b))
       );
-
-      // In a real implementation, you would update Supabase
-      // const { error } = await supabase
-      //   .from('property_viewings')
-      //   .update({ status: 'confirmed' })
-      //   .eq('id', bookingId);
-
-      // if (error) throw error;
     } catch (err) {
       setError('Failed to confirm booking');
       console.error('Error confirming booking:', err);
@@ -180,23 +189,16 @@ export const useBookings = () => {
     try {
       setIsLoading(true);
       setError(null);
+      const { error } = await supabase
+        .from('property_viewings')
+        .update({ status: 'cancelled' })
+        .eq('id', bookingId);
 
-      // Update local state
-      setBookings(prev => 
-        prev.map(booking => 
-          booking.id === bookingId
-            ? { ...booking, status: 'cancelled' as const }
-            : booking
-        )
+      if (error) throw error;
+
+      setBookings(prev =>
+        prev.map(b => (b.id === bookingId ? { ...b, status: 'cancelled' } as Booking : b))
       );
-
-      // In a real implementation, you would update Supabase
-      // const { error } = await supabase
-      //   .from('property_viewings')
-      //   .update({ status: 'cancelled' })
-      //   .eq('id', bookingId);
-
-      // if (error) throw error;
     } catch (err) {
       setError('Failed to cancel booking');
       console.error('Error cancelling booking:', err);
@@ -210,23 +212,16 @@ export const useBookings = () => {
     try {
       setIsLoading(true);
       setError(null);
+      const { error } = await supabase
+        .from('property_viewings')
+        .update({ status: 'completed' })
+        .eq('id', bookingId);
 
-      // Update local state
-      setBookings(prev => 
-        prev.map(booking => 
-          booking.id === bookingId
-            ? { ...booking, status: 'completed' as const }
-            : booking
-        )
+      if (error) throw error;
+
+      setBookings(prev =>
+        prev.map(b => (b.id === bookingId ? { ...b, status: 'completed' } as Booking : b))
       );
-
-      // In a real implementation, you would update Supabase
-      // const { error } = await supabase
-      //   .from('property_viewings')
-      //   .update({ status: 'completed' })
-      //   .eq('id', bookingId);
-
-      // if (error) throw error;
     } catch (err) {
       setError('Failed to complete booking');
       console.error('Error completing booking:', err);
@@ -320,6 +315,13 @@ export const useBookings = () => {
     bookings,
     isLoading,
     error,
+    isEmpty: !isLoading && bookings.length === 0,
+    retryCount,
+    retry: () => {
+      setRetryCount(0);
+      setError(null);
+      fetchBookings();
+    },
     fetchBookings,
     createBooking,
     confirmBooking,

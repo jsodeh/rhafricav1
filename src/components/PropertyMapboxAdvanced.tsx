@@ -202,6 +202,10 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         map.on('load', () => {
           setMapLoaded(true);
           addPropertyData(map);
+          // When there are no properties, try to center on user location gracefully
+          if (!properties || properties.length === 0) {
+            getUserLocation();
+          }
           setupMapInteractions(map);
         });
 
@@ -222,7 +226,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
     };
 
     loadMapbox();
-  }, [MAPBOX_TOKEN, mapStyle, viewMode]);
+  }, [MAPBOX_TOKEN, mapStyle, viewMode, properties, getUserLocation, addPropertyData, setupMapInteractions]);
 
   // Add property data to map
   const addPropertyData = useCallback((map: any) => {

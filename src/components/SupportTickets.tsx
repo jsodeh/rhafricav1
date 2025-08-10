@@ -30,6 +30,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import EmptyState from "@/components/EmptyState";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export interface SupportTicket {
@@ -92,72 +94,40 @@ const SupportTickets: React.FC<SupportTicketsProps> = ({ className = "" }) => {
     priority: "medium" as SupportTicket["priority"],
   });
 
-  // Mock data for demo
   useEffect(() => {
-    if (user) {
-      const mockTickets: SupportTicket[] = [
-        {
-          id: "TKT-001",
-          title: "Unable to upload property images",
-          description: "I'm having trouble uploading images for my property listing. The upload fails after selecting files.",
-          category: "technical",
-          priority: "high",
-          status: "in_progress",
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-          updated_at: new Date(Date.now() - 3600000).toISOString(),
-          user_id: user.id,
-          assigned_to: "support_agent_1",
-          tags: ["upload", "images", "property"],
-          messages: [
-            {
-              id: "msg_1",
-              ticket_id: "TKT-001",
-              sender_id: user.id,
-              sender_name: user.email?.split("@")[0] || "User",
-              sender_role: "user",
-              message: "I'm having trouble uploading images for my property listing. The upload fails after selecting files.",
-              created_at: new Date(Date.now() - 86400000).toISOString(),
-            },
-            {
-              id: "msg_2",
-              ticket_id: "TKT-001",
-              sender_id: "support_agent_1",
-              sender_name: "Support Agent",
-              sender_role: "agent",
-              message: "Thank you for contacting us. I can help you with the image upload issue. Can you tell me what browser you're using and the file sizes of the images you're trying to upload?",
-              created_at: new Date(Date.now() - 82800000).toISOString(),
-            },
-          ],
+    const loadTickets = async () => {
+      if (!user) return;
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('case_submissions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        const mapped: SupportTicket[] = (data || []).map((t: any) => ({
+          id: t.id,
+          title: t.subject || t.case_type || 'Support Ticket',
+          description: t.message || '',
+          category: (t.category || 'general'),
+          priority: (t.urgency || 'medium'),
+          status: (t.status || 'open'),
+          created_at: t.created_at,
+          updated_at: t.updated_at || t.created_at,
+          user_id: t.user_id,
+          assigned_to: t.assigned_to || undefined,
+          tags: [],
+          messages: [],
           attachments: [],
-        },
-        {
-          id: "TKT-002",
-          title: "Payment verification delay",
-          description: "My payment was processed 3 days ago but my account still shows as pending verification.",
-          category: "billing",
-          priority: "medium",
-          status: "waiting_response",
-          created_at: new Date(Date.now() - 259200000).toISOString(),
-          updated_at: new Date(Date.now() - 172800000).toISOString(),
-          user_id: user.id,
-          assigned_to: "billing_agent_1",
-          tags: ["payment", "verification"],
-          messages: [
-            {
-              id: "msg_3",
-              ticket_id: "TKT-002",
-              sender_id: user.id,
-              sender_name: user.email?.split("@")[0] || "User",
-              sender_role: "user",
-              message: "My payment was processed 3 days ago but my account still shows as pending verification.",
-              created_at: new Date(Date.now() - 259200000).toISOString(),
-            },
-          ],
-          attachments: [],
-        },
-      ];
-      setTickets(mockTickets);
-    }
+        }));
+        setTickets(mapped);
+      } catch (e) {
+        console.error('Failed to load tickets', e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadTickets();
   }, [user]);
 
   // Filter tickets

@@ -33,25 +33,19 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import EmptyState from "@/components/EmptyState";
+import { useBookings } from "@/hooks/useBookings";
 
 
 
 
 
-// Temporary mock data fallbacks to avoid runtime errors in test/runtime
-// when demo datasets are not defined. These will be replaced by real data.
-const mockBookings: any[] = Array.isArray((globalThis as any).mockBookings)
-  ? (globalThis as any).mockBookings
-  : [];
-
-const mockEarnings: Array<{ month: string; earnings: string; jobs: number; hours: number }> = Array.isArray((globalThis as any).mockEarnings)
-  ? (globalThis as any).mockEarnings
-  : [];
+// Remove mock fallbacks; use real hooks and empty states
 const ServiceProviderDashboard = () => {
   const { user } = useAuth();
   const { profile, isLoading: profileLoading } = useUserProfile();
   const [activeTab, setActiveTab] = useState("overview");
   const [bookingFilter, setBookingFilter] = useState("all");
+  const { bookings, isLoading: bookingsLoading, error: bookingsError, isEmpty: bookingsEmpty, retry: retryBookings } = useBookings();
 
   // Real service provider data
   const providerData = {
@@ -60,8 +54,8 @@ const ServiceProviderDashboard = () => {
     phone: profile?.phone || user?.phone || "",
     profilePhoto: user?.profilePhoto || profile?.avatar_url || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
     joinDate: user ? new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "",
-    specialization: profile?.specialization || "Professional Services",
-    experience: profile?.experience_years ? `${profile.experience_years} years` : "Experienced",
+    specialization: "Professional Services",
+    experience: "Experienced",
     rating: 0, // Will be calculated from real reviews
     totalReviews: 0, // Will be fetched from database
     activeBookings: 0, // Will be calculated from real data
@@ -70,9 +64,9 @@ const ServiceProviderDashboard = () => {
     responseTime: "< 2 hours", // Default response time
   };
 
-  const filteredBookings = mockBookings.filter((booking) => {
+  const filteredBookings = (bookings || []).filter((booking) => {
     if (bookingFilter === "all") return true;
-    return booking.status.toLowerCase().replace(" ", "_") === bookingFilter;
+    return (booking.status || '').toLowerCase().replace(" ", "_") === bookingFilter;
   });
 
   return (
@@ -223,48 +217,55 @@ const ServiceProviderDashboard = () => {
                   </Link>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {mockBookings.slice(0, 3).map((booking) => (
+                  {filteredBookings.length > 0 ? (
+                    filteredBookings.slice(0, 3).map((booking: any) => (
                     <div
                       key={booking.id}
                       className="flex gap-3 p-3 border rounded-lg hover:bg-gray-50"
                     >
                       <img
-                        src={booking.client.avatar}
-                        alt={booking.client.name}
+                          src={(booking.property?.images && booking.property.images[0]) || '/placeholder.svg'}
+                          alt={booking.property?.title || 'Booking'}
                         className="w-12 h-12 rounded-full object-cover"
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-gray-900">
-                          {booking.serviceTitle}
+                            {booking.property?.title || 'Scheduled Service'}
                         </h4>
                         <p className="text-sm text-gray-600">
-                          {booking.client.name}
+                            {booking.agent?.name || 'Assigned Agent'}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {booking.property.title}
+                            {booking.property?.address || ''}
                         </p>
                         <div className="flex items-center justify-between mt-2">
-                          <span className="text-sm font-semibold text-green-700">
-                            {booking.price}
-                          </span>
+                            <span className="text-sm font-semibold text-green-700">₦0</span>
                           <Badge
                             variant={
-                              booking.status === "Confirmed"
-                                ? "default"
-                                : booking.status === "In Progress"
-                                  ? "destructive"
-                                  : "secondary"
-                            }
-                          >
-                            {booking.status}
+                                (booking.status || '').toLowerCase() === 'confirmed'
+                                  ? 'default'
+                                  : (booking.status || '').toLowerCase() === 'in progress'
+                                    ? 'destructive'
+                                    : 'secondary'
+                              }
+                            >
+                              {booking.status || 'pending'}
                           </Badge>
                         </div>
                         <p className="text-xs text-gray-500 mt-1">
-                          {booking.scheduledDate} at {booking.scheduledTime}
+                            {booking.scheduled_date} at {booking.scheduled_time}
                         </p>
                       </div>
                     </div>
-                  ))}
+                    ))
+                  ) : (
+                    <EmptyState
+                      icon={Calendar}
+                      title="No Recent Bookings"
+                      description="Your latest bookings will appear here once clients schedule services."
+                      className="py-8"
+                    />
+                  )}
                 </CardContent>
               </Card>
 
@@ -280,33 +281,21 @@ const ServiceProviderDashboard = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">This Month</span>
-                      <span className="font-semibold">
-                        {mockEarnings[0]?.earnings ?? '₦0'}
-                      </span>
+                       <span className="font-semibold">₦0</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        Jobs Completed
-                      </span>
-                      <span className="font-semibold">
-                        {mockEarnings[0]?.jobs ?? 0}
-                      </span>
+                       <span className="text-sm text-gray-600">Jobs Completed</span>
+                       <span className="font-semibold">0</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        Hours Worked
-                      </span>
-                      <span className="font-semibold">
-                        {mockEarnings[0]?.hours ?? 0}h
-                      </span>
+                       <span className="text-sm text-gray-600">Hours Worked</span>
+                       <span className="font-semibold">0h</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Avg. Rating</span>
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="font-semibold">
-                          {providerData.rating}
-                        </span>
+                         <span className="font-semibold">{providerData.rating}</span>
                       </div>
                     </div>
                   </div>
@@ -482,48 +471,48 @@ const ServiceProviderDashboard = () => {
             </div>
 
             <div className="space-y-4">
-              {filteredBookings.map((booking) => (
+              {filteredBookings.map((booking: any) => (
                 <Card key={booking.id}>
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4">
                         <img
-                          src={booking.client.avatar}
-                          alt={booking.client.name}
+                          src={(booking.property?.images && booking.property.images[0]) || '/placeholder.svg'}
+                          alt={booking.property?.title || 'Booking'}
                           className="w-12 h-12 rounded-full object-cover"
                         />
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900">
-                            {booking.serviceTitle}
+                            {booking.property?.title || 'Scheduled Service'}
                           </h3>
                           <p className="text-sm text-gray-600">
-                            Client: {booking.client.name}
+                            Agent: {booking.agent?.name || 'Assigned Agent'}
                           </p>
                           <p className="text-sm text-gray-600">
-                            {booking.property.title}
+                            {booking.property?.title || ''}
                           </p>
                           <p className="text-xs text-gray-500">
-                            {booking.property.address}
+                            {booking.property?.address || ''}
                           </p>
 
                           <div className="flex items-center gap-4 mt-3">
                             <Badge
                               variant={
-                                booking.status === "Confirmed"
+                                (booking.status || '').toLowerCase() === 'confirmed'
                                   ? "default"
-                                  : booking.status === "In Progress"
+                                  : (booking.status || '').toLowerCase() === 'in progress'
                                     ? "destructive"
                                     : "secondary"
                               }
                             >
-                              {booking.status}
+                              {booking.status || 'pending'}
                             </Badge>
                             <span className="text-sm text-gray-600">
                               <Clock className="h-4 w-4 inline mr-1" />
-                              {booking.scheduledDate} at {booking.scheduledTime}
+                              {booking.scheduled_date} at {booking.scheduled_time}
                             </span>
                             <span className="text-sm font-semibold text-green-700">
-                              {booking.price}
+                              ₦0
                             </span>
                           </div>
 
@@ -544,7 +533,7 @@ const ServiceProviderDashboard = () => {
                         <Button variant="outline" size="sm">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        {booking.status !== "Completed" && (
+                        {((booking.status || '').toLowerCase() !== 'completed') && (
                           <Button size="sm">
                             <CheckCircle className="h-4 w-4 mr-1" />
                             Mark Complete
@@ -653,10 +642,10 @@ const ServiceProviderDashboard = () => {
                       This Month
                     </p>
                     <p className="text-3xl font-bold text-green-600">
-                      {mockEarnings[0]?.earnings ?? '₦0'}
+                       ₦0
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
-                        {(mockEarnings[0]?.jobs ?? 0)} jobs completed
+                        0 jobs completed
                     </p>
                   </div>
                 </CardContent>
@@ -683,7 +672,7 @@ const ServiceProviderDashboard = () => {
                       Hours Worked
                     </p>
                     <p className="text-3xl font-bold text-purple-600">
-                       {(mockEarnings[0]?.hours ?? 0)}h
+                       0h
                     </p>
                     <p className="text-sm text-gray-500 mt-1">This month</p>
                   </div>
@@ -697,34 +686,12 @@ const ServiceProviderDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {mockEarnings.map((month, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div>
-                        <h4 className="font-medium text-gray-900">
-                          {month.month}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          {month.jobs} jobs • {month.hours} hours
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xl font-bold text-green-600">
-                          {month.earnings}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          ₦
-                          {Math.round(
-                            parseInt(month.earnings.replace(/[₦,]/g, "")) /
-                              month.jobs,
-                          ).toLocaleString()}{" "}
-                          avg/job
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                   <EmptyState
+                     icon={BarChart3}
+                     title="No Earnings Yet"
+                     description="Earnings and monthly performance will appear here once you start completing jobs."
+                     className="py-8"
+                   />
                 </div>
               </CardContent>
             </Card>
@@ -767,7 +734,7 @@ const ServiceProviderDashboard = () => {
                     </label>
                     <input
                       type="text"
-                      value={providerData.license}
+                      value={"Not provided"}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
                       readOnly
                     />

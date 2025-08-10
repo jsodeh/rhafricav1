@@ -20,7 +20,7 @@ import { useProperties } from "@/hooks/useProperties";
 import LoadingState from "@/components/LoadingState";
 
 const MapSearch = () => {
-  const { properties, isLoading, error, refetch } = useProperties();
+  const { properties, isLoading, error, refetch, isEmpty } = useProperties();
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [showPropertyList, setShowPropertyList] = useState(false);
 
@@ -111,31 +111,12 @@ const MapSearch = () => {
                 className="w-full h-full"
               />
             ) : (
-              <div className="flex items-center justify-center h-full bg-gray-100">
-                <div className="text-center">
-                  <MapPin className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    No Properties to Display
-                  </h3>
-                  <p className="text-gray-600 mb-6">
-                    There are no properties available to show on the map.
-                  </p>
-                  <div className="space-x-4">
-                    <Link to="/search">
-                      <Button>
-                        <Search className="h-4 w-4 mr-2" />
-                        Search Properties
-                      </Button>
-                    </Link>
-                    <Link to="/properties">
-                      <Button variant="outline">
-                        <Home className="h-4 w-4 mr-2" />
-                        Browse All
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
+              <PropertyMapboxAdvanced
+                properties={[]}
+                onPropertySelect={setSelectedProperty}
+                selectedProperty={null}
+                className="w-full h-full"
+              />
             )}
           </LoadingState>
         </div>

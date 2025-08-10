@@ -43,6 +43,12 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
   const [tasks, setTasks] = useState<ProfileTask[]>([]);
   const [completedCount, setCompletedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeEditor, setActiveEditor] = useState<null | 'basic_info' | 'profile_photo' | 'location_setup'>(null);
+  const [editFullName, setEditFullName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editAvatarUrl, setEditAvatarUrl] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -65,6 +71,11 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
       }
 
       setProfile(data);
+      // seed editor fields
+      setEditFullName(data?.full_name || '');
+      setEditPhone(data?.phone || '');
+      setEditLocation(data?.location || '');
+      setEditAvatarUrl(data?.avatar_url || '');
       generateTasks(data);
     } catch (error) {
       console.error('Error:', error);
@@ -100,7 +111,7 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
         userTypes: ['buyer', 'agent', 'owner'],
         icon: <User className="w-4 h-4" />,
         action: 'Complete profile',
-        onClick: () => window.location.href = '/onboarding'
+        onClick: () => setActiveEditor('basic_info')
       },
       {
         id: 'profile_photo',
@@ -112,7 +123,7 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
         userTypes: ['buyer', 'agent', 'owner'],
         icon: <Camera className="w-4 h-4" />,
         action: 'Upload photo',
-        onClick: () => window.location.href = '/dashboard'
+        onClick: () => setActiveEditor('profile_photo')
       },
       {
         id: 'location_setup',
@@ -124,7 +135,7 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
         userTypes: ['buyer'],
         icon: <MapPin className="w-4 h-4" />,
         action: 'Set location',
-        onClick: () => window.location.href = '/dashboard'
+        onClick: () => setActiveEditor('location_setup')
       },
 
       // Agent-Specific Tasks
@@ -300,6 +311,31 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
 
   if (!isOpen) return null;
 
+  const saveProfileEdits = async () => {
+    try {
+      setSaving(true);
+      const payload: any = {
+        full_name: editFullName,
+        phone: editPhone,
+        location: editLocation,
+        avatar_url: editAvatarUrl,
+        user_id: user?.id,
+      };
+      const { error } = await supabase
+        .from('user_profiles')
+        .upsert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      await fetchUserProfile();
+      setActiveEditor(null);
+    } catch (e) {
+      console.error('Failed to save profile edits', e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const accountStatus = getAccountStatus();
   const priorityTasks = tasks.filter(task => task.priority === 'high' && !task.completed);
   const otherTasks = tasks.filter(task => task.priority !== 'high' || task.completed);
@@ -337,6 +373,57 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
         </CardHeader>
 
         <CardContent className="overflow-y-auto max-h-96">
+          {activeEditor && (
+            <div className="mb-4 p-4 border rounded-lg bg-gray-50">
+              {activeEditor === 'basic_info' && (
+                <div className="space-y-3">
+                  <h3 className="font-medium">Update Basic Information</h3>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Full Name</label>
+                    <input className="w-full border rounded px-3 py-2 text-sm" value={editFullName} onChange={(e) => setEditFullName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Phone</label>
+                    <input className="w-full border rounded px-3 py-2 text-sm" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Location</label>
+                    <input className="w-full border rounded px-3 py-2 text-sm" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={saveProfileEdits} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+                    <Button size="sm" variant="outline" onClick={() => setActiveEditor(null)}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+              {activeEditor === 'profile_photo' && (
+                <div className="space-y-3">
+                  <h3 className="font-medium">Update Profile Photo</h3>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Avatar URL</label>
+                    <input className="w-full border rounded px-3 py-2 text-sm" value={editAvatarUrl} onChange={(e) => setEditAvatarUrl(e.target.value)} placeholder="https://..." />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={saveProfileEdits} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+                    <Button size="sm" variant="outline" onClick={() => setActiveEditor(null)}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+              {activeEditor === 'location_setup' && (
+                <div className="space-y-3">
+                  <h3 className="font-medium">Set Location Preferences</h3>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Location</label>
+                    <input className="w-full border rounded px-3 py-2 text-sm" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} placeholder="City, State" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={saveProfileEdits} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+                    <Button size="sm" variant="outline" onClick={() => setActiveEditor(null)}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
