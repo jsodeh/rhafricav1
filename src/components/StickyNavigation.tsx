@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import LocationSearch from "./LocationSearch";
 import { Menu, X, LogOut, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import NotificationCenter from "./NotificationCenter";
 import {
   DropdownMenu,
@@ -37,11 +38,12 @@ const StickyNavigation = ({
 }: StickyNavigationProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
+  const { profile } = useUserProfile();
   const navigate = useNavigate();
 
   // Function to get the primary dashboard link based on user role
   const getPrimaryDashboardLink = () => {
-    const accountType = user?.accountType?.toLowerCase() || "";
+    const accountType = (profile?.account_type || user?.accountType || "").toLowerCase();
     if (accountType.includes("admin")) return { label: "Admin Dashboard", to: "/admin-dashboard" };
     if (accountType.includes("agent")) return { label: "Agent Dashboard", to: "/agent-dashboard" };
     if (accountType.includes("owner")) return { label: "Owner Dashboard", to: "/owner-dashboard" };
@@ -54,7 +56,7 @@ const StickyNavigation = ({
     getPrimaryDashboardLink(),
     { label: "Messages", to: "/messages" },
     // Add Super Admin link for admin users
-    ...(user?.accountType?.toLowerCase().includes('admin') ? [
+    ...(((profile?.account_type || user?.accountType || '').toLowerCase().includes('admin')) ? [
       { label: "Super Admin", to: "/super-admin" }
     ] : [])
   ].filter(Boolean);
@@ -63,7 +65,7 @@ const StickyNavigation = ({
   const filteredRightMenu = rightMenu.filter(item => {
     if (item.label !== "Manage Rentals") return true;
     if (!isAuthenticated) return false;
-    const type = user?.accountType?.toLowerCase() || "";
+    const type = (profile?.account_type || user?.accountType || "").toLowerCase();
     return type.includes("agent") || type.includes("owner");
   });
 
