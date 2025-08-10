@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/components/Toast';
 import { 
   CheckCircle, 
   Circle, 
@@ -39,6 +40,7 @@ interface ProfileSetupProgressProps {
 
 const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
+  const { showError, showSuccess } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [tasks, setTasks] = useState<ProfileTask[]>([]);
   const [completedCount, setCompletedCount] = useState(0);
@@ -321,19 +323,21 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
         location: editLocation,
         avatar_url: editAvatarUrl,
         user_id: user?.id,
+        updated_at: new Date().toISOString()
       };
       const { error } = await supabase
         .from('user_profiles')
-        .upsert(payload)
+        .upsert(payload, { onConflict: 'user_id' })
         .select()
         .single();
       if (error) throw error;
       await fetchUserProfile();
       setActiveEditor(null);
-      // advance step when saving from inline editor
       setStep((s) => Math.min(s + 1, 3));
-    } catch (e) {
+      showSuccess('Profile updated');
+    } catch (e: any) {
       console.error('Failed to save profile edits', e);
+      showError(e?.message || 'Failed to save profile');
     } finally {
       setSaving(false);
     }
