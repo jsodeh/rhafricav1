@@ -58,6 +58,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   };
 
+  // Hydrate/override accountType and related profile fields from user_profiles table
+  const refreshUserFromProfile = useCallback(async (userId: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('full_name, phone, avatar_url, account_type')
+        .eq('user_id', userId)
+        .single();
+
+      if (profile) {
+        setUser(prev => prev ? {
+          ...prev,
+          name: profile.full_name || prev.name,
+          phone: profile.phone || prev.phone,
+          profilePhoto: profile.avatar_url || prev.profilePhoto,
+          accountType: profile.account_type || prev.accountType,
+        } : prev);
+      }
+    } catch (err) {
+      console.warn('refreshUserFromProfile failed:', err);
+    }
+  }, []);
+
   // Check for existing session on mount
   useEffect(() => {
     let mounted = true; // Prevent state updates if component unmounts
@@ -69,6 +92,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const user = convertSupabaseUser(session.user);
           setUser(user);
           setIsAuthenticated(true);
+          // Ensure role comes from latest profile
+          await refreshUserFromProfile(session.user.id);
         }
       } catch (error) {
         console.error('Error checking session:', error);
@@ -92,6 +117,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const user = convertSupabaseUser(session.user);
           setUser(user);
           setIsAuthenticated(true);
+          await refreshUserFromProfile(session.user.id);
           
           // Welcome notification will be handled by components that use useNotifications
 
@@ -101,6 +127,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else if (event === 'USER_UPDATED' && session?.user) {
           const user = convertSupabaseUser(session.user);
           setUser(user);
+          await refreshUserFromProfile(session.user.id);
         }
         setIsLoading(false);
       }
@@ -111,6 +138,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Listen for realtime profile changes to reflect role updates instantly
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel('user-profile-updates')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'user_profiles',
+        filter: `user_id=eq.${user.id}`,
+      }, (payload: any) => {
+        const next = payload.new || payload.old;
+        if (!next) return;
+        setUser(prev => prev ? {
+          ...prev,
+          name: next.full_name ?? prev.name,
+          phone: next.phone ?? prev.phone,
+          profilePhoto: next.avatar_url ?? prev.profilePhoto,
+          accountType: next.account_type ?? prev.accountType,
+        } : prev);
+      })
+      .subscribe();
+
+    return () => {
+      try { supabase.removeChannel(channel); } catch {}
+    };
+  }, [user?.id]);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {

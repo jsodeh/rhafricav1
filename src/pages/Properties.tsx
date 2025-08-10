@@ -256,87 +256,84 @@ const Properties = () => {
           {viewMode === "map" ? (
             /* Zillow-style Map View */
             <div className="flex h-full">
-              {/* Property List Sidebar */}
-              {showPropertyList && (
-                <div className="w-96 bg-white border-r shadow-lg overflow-hidden flex flex-col">
+               {/* Property List Sidebar (wider to allow 2-column grid) */}
+               {showPropertyList && (
+                 <div className="w-[32rem] bg-white border-r shadow-lg overflow-hidden flex flex-col">
                   <div className="p-4 border-b bg-gray-50">
                     <h2 className="font-semibold text-gray-900">
                       {properties?.length || 0} Properties
                     </h2>
                   </div>
                   
-                  <div className="flex-1 overflow-y-auto">
+                   <div className="flex-1 overflow-y-auto">
                     {isLoading ? (
                       <div className="flex justify-center items-center py-12">
                         <div className="text-gray-600">Loading properties...</div>
                       </div>
-                    ) : properties && properties.length > 0 ? (
-                      <div className="space-y-4 p-4">
-                        {properties.map((property) => (
-                          <div
-                            key={property.id}
-                            className={`cursor-pointer rounded-lg border transition-all hover:shadow-md ${
-                              selectedProperty === property.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                            }`}
-                            onClick={() => setSelectedProperty(property.id)}
-                          >
-                            <div className="p-4">
-                              <div className="flex gap-3">
-                                <img
-                                  src={property.images?.[0] || '/placeholder.svg'}
-                                  alt={property.title}
-                                  className="w-20 h-16 object-cover rounded-lg flex-shrink-0"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-start justify-between mb-2">
-                                    <h3 className="font-semibold text-gray-900 text-sm line-clamp-2">
-                                      {property.title}
-                                    </h3>
-                                    <div className="flex gap-1 ml-2">
-                                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                        <Heart className="h-3 w-3" />
-                                      </Button>
-                                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                        <Share2 className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="text-lg font-bold text-blue-700 mb-2">
-                                    ₦{property.price?.toLocaleString()}
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-3 text-xs text-gray-600 mb-2">
-                                    {property.bedrooms && (
-                                      <div className="flex items-center gap-1">
-                                        <Bed className="h-3 w-3" />
-                                        <span>{property.bedrooms}</span>
-                                      </div>
-                                    )}
-                                    {property.bathrooms && (
-                                      <div className="flex items-center gap-1">
-                                        <Bath className="h-3 w-3" />
-                                        <span>{property.bathrooms}</span>
-                                      </div>
-                                    )}
-                                    {property.area_sqm && (
-                                      <div className="flex items-center gap-1">
-                                        <Square className="h-3 w-3" />
-                                        <span>{property.area_sqm} sqm</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-1 text-xs text-gray-600">
-                                    <MapPin className="h-3 w-3" />
-                                    <span className="truncate">{property.address}, {property.city}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                     ) : properties && properties.length > 0 ? (
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                         {properties.map((property) => (
+                           <div
+                             key={property.id}
+                             className={`cursor-pointer rounded-lg border transition-all hover:shadow-md ${
+                               selectedProperty === property.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                             }`}
+                             onClick={() => setSelectedProperty(property.id)}
+                           >
+                             <div className="p-4">
+                               <div className="flex gap-3">
+                                 <img
+                                   src={property.images?.[0] || '/placeholder.svg'}
+                                   alt={property.title}
+                                   className="w-20 h-16 object-cover rounded-lg flex-shrink-0"
+                                 />
+                                 <div className="flex-1 min-w-0">
+                                   <div className="flex items-start justify-between mb-2">
+                                     <h3 className="font-semibold text-gray-900 text-sm line-clamp-2">
+                                       {property.title}
+                                     </h3>
+                                     <div className="flex gap-1 ml-2">
+                                       <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                         <Heart className="h-3 w-3" />
+                                       </Button>
+                                       <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                         <Share2 className="h-3 w-3" />
+                                       </Button>
+                                     </div>
+                                   </div>
+                                   <div className="text-lg font-bold text-blue-700 mb-2">
+                                     ₦{property.price?.toLocaleString()}
+                                   </div>
+                                   <div className="flex items-center gap-3 text-xs text-gray-600 mb-2">
+                                     {property.bedrooms && (
+                                       <div className="flex items-center gap-1">
+                                         <Bed className="h-3 w-3" />
+                                         <span>{property.bedrooms}</span>
+                                       </div>
+                                     )}
+                                     {property.bathrooms && (
+                                       <div className="flex items-center gap-1">
+                                         <Bath className="h-3 w-3" />
+                                         <span>{property.bathrooms}</span>
+                                       </div>
+                                     )}
+                                     {property.area_sqm && (
+                                       <div className="flex items-center gap-1">
+                                         <Square className="h-3 w-3" />
+                                         <span>{property.area_sqm} sqm</span>
+                                       </div>
+                                     )}
+                                   </div>
+                                   <div className="flex items-center gap-1 text-xs text-gray-600">
+                                     <MapPin className="h-3 w-3" />
+                                     <span className="truncate">{property.address}, {property.city}</span>
+                                   </div>
+                                 </div>
+                               </div>
+                             </div>
+                           </div>
+                         ))}
+                       </div>
                     ) : (
                       <div className="flex justify-center items-center py-12">
                         <div className="text-center">

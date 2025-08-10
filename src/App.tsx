@@ -120,14 +120,16 @@ const App = () => {
               <Route path="/auth/confirm" element={<AuthConfirm />} />
               <Route path="/auth/reset-password" element={<ResetPassword />} />
               <Route path="/properties" element={<Properties />} />
+              {/* Redirect alternate entry points to unified Properties */}
+              <Route path="/map" element={<MapSearch />} />
+              <Route path="/search" element={<Properties />} />
               <Route path="/properties/:id" element={<PropertyDetail />} />
               <Route path="/properties/add" element={
                 <AuthRoute>
                   <AddProperty />
                 </AuthRoute>
               } />
-              <Route path="/search" element={<SearchResults />} />
-              <Route path="/map" element={<MapSearch />} />
+              {/* keep SearchResults for legacy deep links if used elsewhere */}
               <Route path="/agents" element={<Agents />} />
               <Route path="/agents/:id" element={<AgentProfile />} />
               <Route path="/help" element={<Help />} />
