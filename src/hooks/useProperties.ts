@@ -34,10 +34,14 @@ export const useProperties = (filters?: PropertyFilters) => {
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    setRetryCount(0);
     fetchProperties();
-  }, [filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(filters)]);
 
   const fetchProperties = async () => {
+    const controller = new AbortController();
+    const signal = controller.signal;
     try {
       setIsLoading(true);
       setError(null);
@@ -121,7 +125,10 @@ export const useProperties = (filters?: PropertyFilters) => {
       setProperties(data || []);
       setTotalCount(count || 0);
     } catch (err: any) {
-      console.error('Error fetching properties:', err);
+      if (signal.aborted) {
+        return;
+      }
+      console.error('Error fetching properties:', err?.message || err);
       setError(err.message);
       // Auto-retry up to 3 times with exponential backoff
       if (retryCount < 3) {

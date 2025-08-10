@@ -155,7 +155,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
     }
   }, []);
 
-  // Initialize map
+  // Initialize map (once)
   useEffect(() => {
     if (!MAPBOX_TOKEN) {
       console.warn('Mapbox access token not found. Please add VITE_MAPBOX_ACCESS_TOKEN to your environment variables.');
@@ -231,7 +231,9 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
     };
 
     loadMapbox();
-  }, [MAPBOX_TOKEN, mapStyle, viewMode, properties, getUserLocation, addPropertyData, setupMapInteractions]);
+    // Do not include dependencies that cause re-creation; we update layers separately
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [MAPBOX_TOKEN]);
 
   // Add property data to map
   const addPropertyData = useCallback((map: any) => {
@@ -560,12 +562,13 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
     }
   };
 
-  // Update data when properties change
+  // Update data and layers when inputs change
   useEffect(() => {
     if (mapInstanceRef.current && mapLoaded) {
       addPropertyData(mapInstanceRef.current);
+      setupMapInteractions(mapInstanceRef.current);
     }
-  }, [properties, selectedProperty, showClustering, showHeatmapLayer, addPropertyData]);
+  }, [properties, selectedProperty, showClustering, showHeatmapLayer, addPropertyData, setupMapInteractions, mapLoaded]);
 
   if (!MAPBOX_TOKEN) {
     return (
