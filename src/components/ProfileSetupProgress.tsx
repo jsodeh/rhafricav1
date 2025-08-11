@@ -51,6 +51,8 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
   const [editPhone, setEditPhone] = useState('');
   const [editLocation, setEditLocation] = useState('');
   const [editAvatarUrl, setEditAvatarUrl] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -343,6 +345,36 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
     }
   };
 
+  // Save helper that forces a specific avatar URL value
+  const saveProfileEditsWithUrl = async (avatarUrl: string) => {
+    try {
+      setSaving(true);
+      const payload: any = {
+        full_name: editFullName,
+        phone: editPhone,
+        location: editLocation,
+        avatar_url: avatarUrl,
+        user_id: user?.id,
+        updated_at: new Date().toISOString()
+      };
+      const { error } = await supabase
+        .from('user_profiles')
+        .upsert(payload, { onConflict: 'user_id' })
+        .select()
+        .single();
+      if (error) throw error;
+      await fetchUserProfile();
+      setActiveEditor(null);
+      setStep((s) => Math.min(s + 1, 3));
+      showSuccess('Profile updated');
+    } catch (e: any) {
+      console.error('Failed to save profile edits', e);
+      showError(e?.message || 'Failed to save profile');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const accountStatus = getAccountStatus();
   const priorityTasks = tasks.filter(task => task.priority === 'high' && !task.completed);
   const otherTasks = tasks.filter(task => task.priority !== 'high' || task.completed);
@@ -412,12 +444,41 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
               {activeEditor === 'profile_photo' && (
                 <div className="space-y-3">
                   <h3 className="font-medium">Update Profile Photo</h3>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Avatar URL</label>
-                    <input className="w-full border rounded px-3 py-2 text-sm" value={editAvatarUrl} onChange={(e) => setEditAvatarUrl(e.target.value)} placeholder="https://..." />
+                  <div className="grid gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Upload Image</label>
+                      <input type="file" accept="image/*" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Or paste image URL</label>
+                      <input className="w-full border rounded px-3 py-2 text-sm" value={editAvatarUrl} onChange={(e) => setEditAvatarUrl(e.target.value)} placeholder="https://..." />
+                    </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={saveProfileEdits} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+                    <Button size="sm" onClick={async () => {
+                      try {
+                        setUploading(true);
+                        let publicUrl = editAvatarUrl;
+                        if (avatarFile) {
+                          const fileExt = avatarFile.name.split('.').pop();
+                          const fileName = `${user?.id}/avatar_${Date.now()}.${fileExt}`;
+                          const { error: uploadError } = await supabase.storage.from('profile-images').upload(fileName, avatarFile, {
+                            upsert: true,
+                            contentType: avatarFile.type,
+                          });
+                          if (uploadError) throw uploadError;
+                          const { data: urlData } = supabase.storage.from('profile-images').getPublicUrl(fileName);
+                          publicUrl = urlData.publicUrl;
+                          setEditAvatarUrl(publicUrl);
+                        }
+                        await saveProfileEditsWithUrl(publicUrl);
+                      } catch (e: any) {
+                        console.error('Avatar upload failed', e);
+                        showError(e?.message || 'Failed to upload avatar');
+                      } finally {
+                        setUploading(false);
+                      }
+                    }} disabled={saving || uploading}>{uploading ? 'Uploading...' : saving ? 'Saving...' : 'Save'}</Button>
                     <Button size="sm" variant="outline" onClick={() => setActiveEditor(null)}>Cancel</Button>
                   </div>
                 </div>

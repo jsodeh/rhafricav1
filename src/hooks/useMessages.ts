@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, subscribeToMessages } from '@/integrations/supabase/client';
+import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface Message {
@@ -44,6 +45,7 @@ export const useMessages = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeConversation, setActiveConversation] = useState<string | null>(null);
+  const { createNotification, preferences } = useNotifications();
 
   // Fetch conversations for the current user
   const { data: conversations, isLoading: conversationsLoading } = useQuery({
@@ -173,6 +175,14 @@ export const useMessages = () => {
       queryClient.invalidateQueries({ queryKey: ['conversations', user.id] });
       if (activeConversation) {
         queryClient.invalidateQueries({ queryKey: ['messages', activeConversation] });
+      }
+
+      // Create in-app notification if category is enabled
+      if (preferences.categories.message) {
+        const record = payload.new as any;
+        const title = 'New message';
+        const body = typeof record?.message === 'string' ? record.message : 'You have a new message';
+        createNotification(title, body, 'info', 'message', '/messages');
       }
     });
 

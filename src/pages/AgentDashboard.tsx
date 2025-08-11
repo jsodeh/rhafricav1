@@ -106,7 +106,7 @@ const AgentDashboard = () => {
             </div>
           </div>
           <div className="flex gap-3">
-            <Button className="flex items-center gap-2">
+            <Button className="flex items-center gap-2" onClick={() => (window.location.href = '/properties/add')}>
               <Plus className="h-4 w-4" />
               Add Listing
             </Button>
@@ -333,7 +333,7 @@ const AgentDashboard = () => {
                   <option value="under contract">Under Contract</option>
                   <option value="sold">Sold</option>
                 </select>
-                <Button className="flex items-center gap-2">
+                <Button className="flex items-center gap-2" onClick={() => (window.location.href = '/properties/add')}>
                   <Plus className="h-4 w-4" />
                   Add New Listing
                 </Button>

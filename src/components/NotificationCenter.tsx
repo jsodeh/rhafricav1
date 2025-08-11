@@ -116,7 +116,7 @@ const NotificationCenter: React.FC = () => {
                     <Settings className="h-3 w-3" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                   <DialogContent className="sm:max-w-[520px]">
                   <DialogHeader>
                     <DialogTitle>Notification Settings</DialogTitle>
                   </DialogHeader>
@@ -124,33 +124,36 @@ const NotificationCenter: React.FC = () => {
                     <div className="space-y-3">
                       <h4 className="font-medium">Notification Methods</h4>
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="email-notifications">Email Notifications</Label>
+                        <Label htmlFor="email-notifications" className="text-gray-900">Email Notifications</Label>
                         <Switch
                           id="email-notifications"
                           checked={preferences.email}
                           onCheckedChange={(checked) =>
                             updatePreferences({ email: checked })
                           }
+                          className="data-[state=unchecked]:bg-gray-300 data-[state=checked]:bg-blue-600"
                         />
                       </div>
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="push-notifications">Push Notifications</Label>
+                        <Label htmlFor="push-notifications" className="text-gray-900">Push Notifications</Label>
                         <Switch
                           id="push-notifications"
                           checked={preferences.push}
                           onCheckedChange={(checked) =>
                             updatePreferences({ push: checked })
                           }
+                          className="data-[state=unchecked]:bg-gray-300 data-[state=checked]:bg-blue-600"
                         />
                       </div>
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="sms-notifications">SMS Notifications</Label>
+                        <Label htmlFor="sms-notifications" className="text-gray-900">SMS Notifications</Label>
                         <Switch
                           id="sms-notifications"
                           checked={preferences.sms}
                           onCheckedChange={(checked) =>
                             updatePreferences({ sms: checked })
                           }
+                          className="data-[state=unchecked]:bg-gray-300 data-[state=checked]:bg-blue-600"
                         />
                       </div>
                     </div>
@@ -160,7 +163,7 @@ const NotificationCenter: React.FC = () => {
                     <div className="space-y-3">
                       <h4 className="font-medium">Notification Categories</h4>
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="property-notifications">Property Updates</Label>
+                        <Label htmlFor="property-notifications" className="text-gray-900">Property Updates</Label>
                         <Switch
                           id="property-notifications"
                           checked={preferences.categories.property}
@@ -172,10 +175,11 @@ const NotificationCenter: React.FC = () => {
                               },
                             })
                           }
+                          className="data-[state=unchecked]:bg-gray-300 data-[state=checked]:bg-blue-600"
                         />
                       </div>
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="booking-notifications">Booking Updates</Label>
+                        <Label htmlFor="booking-notifications" className="text-gray-900">Booking Updates</Label>
                         <Switch
                           id="booking-notifications"
                           checked={preferences.categories.booking}
@@ -187,10 +191,11 @@ const NotificationCenter: React.FC = () => {
                               },
                             })
                           }
+                          className="data-[state=unchecked]:bg-gray-300 data-[state=checked]:bg-blue-600"
                         />
                       </div>
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="payment-notifications">Payment Updates</Label>
+                        <Label htmlFor="payment-notifications" className="text-gray-900">Payment Updates</Label>
                         <Switch
                           id="payment-notifications"
                           checked={preferences.categories.payment}
@@ -202,10 +207,11 @@ const NotificationCenter: React.FC = () => {
                               },
                             })
                           }
+                          className="data-[state=unchecked]:bg-gray-300 data-[state=checked]:bg-blue-600"
                         />
                       </div>
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="message-notifications">Messages</Label>
+                        <Label htmlFor="message-notifications" className="text-gray-900">Messages</Label>
                         <Switch
                           id="message-notifications"
                           checked={preferences.categories.message}
@@ -217,10 +223,11 @@ const NotificationCenter: React.FC = () => {
                               },
                             })
                           }
+                          className="data-[state=unchecked]:bg-gray-300 data-[state=checked]:bg-blue-600"
                         />
                       </div>
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="system-notifications">System Updates</Label>
+                        <Label htmlFor="system-notifications" className="text-gray-900">System Updates</Label>
                         <Switch
                           id="system-notifications"
                           checked={preferences.categories.system}
@@ -232,6 +239,7 @@ const NotificationCenter: React.FC = () => {
                               },
                             })
                           }
+                          className="data-[state=unchecked]:bg-gray-300 data-[state=checked]:bg-blue-600"
                         />
                       </div>
                     </div>

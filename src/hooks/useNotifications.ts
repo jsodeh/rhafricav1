@@ -45,6 +45,46 @@ export const useNotifications = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
+  // Keep a copy of entire profile preferences JSON to avoid overwriting unrelated settings
+  const [profilePreferences, setProfilePreferences] = useState<Record<string, any>>({});
+
+  const mergePreferences = (
+    base: NotificationPreferences,
+    incoming?: Partial<NotificationPreferences>
+  ): NotificationPreferences => {
+    if (!incoming) return base;
+    return {
+      email: incoming.email ?? base.email,
+      push: incoming.push ?? base.push,
+      sms: incoming.sms ?? base.sms,
+      categories: {
+        property: incoming.categories?.property ?? base.categories.property,
+        booking: incoming.categories?.booking ?? base.categories.booking,
+        payment: incoming.categories?.payment ?? base.categories.payment,
+        message: incoming.categories?.message ?? base.categories.message,
+        system: incoming.categories?.system ?? base.categories.system,
+      },
+    };
+  };
+
+  // Load saved preferences from user_profiles.preferences.notification_settings
+  const loadPreferencesFromProfile = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('preferences')
+        .eq('user_id', user.id)
+        .single();
+      if (error && (error as any).code !== 'PGRST116') throw error;
+      const prefs = (data?.preferences as any) || {};
+      setProfilePreferences(prefs);
+      const stored: Partial<NotificationPreferences> | undefined = prefs.notification_settings;
+      setPreferences(prev => mergePreferences(prev, stored));
+    } catch (e) {
+      console.error('Failed to load notification preferences:', e);
+    }
+  }, [user]);
 
   // Fetch user's notifications
   const fetchNotifications = useCallback(async () => {
@@ -264,21 +304,28 @@ export const useNotifications = () => {
   // Update notification preferences
   const updatePreferences = useCallback(async (newPreferences: Partial<NotificationPreferences>) => {
     try {
-      setPreferences(prev => ({ ...prev, ...newPreferences }));
+      // Locally merge first for responsive UI
+      setPreferences(prev => mergePreferences(prev, newPreferences));
 
-      // In a real implementation, you would update Supabase
-      // const { error } = await supabase
-      //   .from('user_preferences')
-      //   .upsert({
-      //     user_id: user?.id,
-      //     notification_preferences: { ...preferences, ...newPreferences },
-      //   });
+      if (!user) return;
+      const updatedLocal = mergePreferences(preferences, newPreferences);
 
-      // if (error) throw error;
+      const updatedProfilePreferences = {
+        ...profilePreferences,
+        notification_settings: updatedLocal,
+      };
+
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ preferences: updatedProfilePreferences })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      setProfilePreferences(updatedProfilePreferences);
     } catch (error) {
       console.error('Error updating notification preferences:', error);
     }
-  }, [preferences]);
+  }, [preferences, profilePreferences, user]);
 
   // Set up real-time subscription for new notifications
   useEffect(() => {
@@ -324,7 +371,8 @@ export const useNotifications = () => {
   // Load notifications on mount
   useEffect(() => {
     fetchNotifications();
-  }, [fetchNotifications]);
+    loadPreferencesFromProfile();
+  }, [fetchNotifications, loadPreferencesFromProfile]);
 
   return {
     notifications,
