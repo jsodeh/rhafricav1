@@ -29,9 +29,14 @@ const AuthCallback = () => {
         const err = searchParams.get('error');
         const errCode = searchParams.get('error_code');
         const errDesc = searchParams.get('error_description');
-        if (err || errCode) {
+        // Also check hash fragment for Supabase errors
+        const hashParams = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+        const hashErr = hashParams.get('error');
+        const hashErrCode = hashParams.get('error_code');
+        const hashErrDesc = hashParams.get('error_description');
+        if (err || errCode || hashErr || hashErrCode) {
           setStatus('error');
-          setMessage((errDesc || err || errCode || 'Invalid or expired verification link') + '. Please sign in again.');
+          setMessage(((hashErrDesc || errDesc) || (hashErr || err) || (hashErrCode || errCode) || 'Invalid or expired verification link') + '. Please sign in again.');
           return;
         }
         const accessToken = searchParams.get('access_token');
