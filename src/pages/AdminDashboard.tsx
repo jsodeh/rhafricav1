@@ -89,7 +89,7 @@ const AdminDashboard = () => {
     const fetchUsers = async () => {
       setLoadingUsers(true);
       setUsersError(null);
-      const { data, error } = await supabase.from('profiles').select('*');
+      const { data, error } = await supabase.from('user_profiles').select('*');
       if (error) {
         setUsersError(error.message);
       } else {
@@ -107,7 +107,7 @@ const AdminDashboard = () => {
       try {
         // Total users
         const { count: userCount, error: userError } = await supabase
-          .from('profiles')
+          .from('user_profiles')
           .select('*', { count: 'exact', head: true });
         if (userError) throw userError;
         setTotalUsers(userCount || 0);

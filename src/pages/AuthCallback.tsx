@@ -6,7 +6,7 @@ import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, resolvedRole, roleReady } = useAuth();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Verifying your account...');
@@ -43,15 +43,19 @@ const AuthCallback = () => {
           
           // Small delay for better UX
           setTimeout(() => {
-            // Check if user needs onboarding
+            // For fresh signups, send to onboarding
             if (type === 'signup' || type === 'email_confirmation') {
               navigate('/onboarding');
-            } else if (type === 'recovery') {
-              navigate('/reset-password');
-            } else {
-              navigate('/dashboard');
+              return;
             }
-          }, 1500);
+            // Otherwise wait until role is resolved and send to role home
+            const to = resolvedRole === 'admin' ? '/admin-dashboard'
+              : resolvedRole === 'agent' ? '/agent-dashboard'
+              : resolvedRole === 'owner' ? '/owner-dashboard'
+              : resolvedRole === 'professional' ? '/service-dashboard'
+              : '/dashboard';
+            navigate(to);
+          }, 800);
         }
       } catch (error) {
         console.error('Unexpected auth callback error:', error);
@@ -61,19 +65,21 @@ const AuthCallback = () => {
     };
 
     handleAuthCallback();
-  }, [navigate, searchParams]);
+  }, [navigate, searchParams, resolvedRole]);
 
   // Also handle when user state changes
   useEffect(() => {
-    if (user && status === 'loading') {
+    if (user && roleReady && status === 'loading') {
       setStatus('success');
       setMessage('Welcome back! Redirecting to your dashboard...');
-      
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1500);
+      const to = resolvedRole === 'admin' ? '/admin-dashboard'
+        : resolvedRole === 'agent' ? '/agent-dashboard'
+        : resolvedRole === 'owner' ? '/owner-dashboard'
+        : resolvedRole === 'professional' ? '/service-dashboard'
+        : '/dashboard';
+      setTimeout(() => navigate(to), 800);
     }
-  }, [user, navigate, status]);
+  }, [user, roleReady, resolvedRole, navigate, status]);
 
   const getIcon = () => {
     switch (status) {
