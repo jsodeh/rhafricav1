@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import LocationSearch from "./LocationSearch";
@@ -37,6 +38,21 @@ const StickyNavigation = ({
   showSearchInNav = false,
 }: StickyNavigationProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // Lock background scroll and close on Escape when mobile menu is open
+  useEffect(() => {
+    if (isMenuOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setIsMenuOpen(false);
+      };
+      window.addEventListener('keydown', onKeyDown);
+      return () => {
+        document.body.style.overflow = prev;
+        window.removeEventListener('keydown', onKeyDown);
+      };
+    }
+  }, [isMenuOpen]);
   const { isAuthenticated, user, logout, resolvedRole } = useAuth();
   const { profile } = useUserProfile();
   const navigate = useNavigate();
@@ -68,7 +84,89 @@ const StickyNavigation = ({
     return resolvedRole === 'agent' || resolvedRole === 'owner';
   });
 
+  const mobileMenu = isMenuOpen ? createPortal(
+    <div className="fixed inset-0 z-[1000] lg:hidden">
+      {/* Backdrop overlay */}
+      <div 
+        className="absolute inset-0 bg-black/50" 
+        onClick={() => setIsMenuOpen(false)}
+        aria-hidden="true"
+      />
+      {/* Menu content */}
+      <aside 
+        id="mobile-menu"
+        className="absolute top-0 right-0 w-80 h-full max-h-screen bg-white shadow-2xl border-l border-gray-200 flex flex-col"
+        role="menu"
+        aria-labelledby="mobile-menu-button"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white">
+          <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
+          <button
+            onClick={() => setIsMenuOpen(false)}
+            className="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto bg-white" role="navigation" aria-label="Mobile navigation menu">
+          <div className="flex flex-col space-y-1 p-6">
+            {[...leftMenu, ...filteredRightMenu].map((item) => (
+              <Link
+                key={item.label}
+                to={item.to}
+                className="flex items-center px-4 py-3 text-gray-800 hover:text-blue-700 hover:bg-blue-50 font-medium rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                onClick={() => setIsMenuOpen(false)}
+                tabIndex={0}
+                role="menuitem"
+              >
+                {item.label}
+              </Link>
+            ))}
+            <div className="border-t border-gray-200 my-4" />
+            {isAuthenticated ? (
+              <>
+                {roleLinks.map((item) => (
+                  <Link
+                    key={item.label}
+                    to={item.to}
+                    className="flex items-center px-4 py-3 text-gray-800 hover:text-blue-700 hover:bg-blue-50 font-medium rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    onClick={() => setIsMenuOpen(false)}
+                    tabIndex={0}
+                    role="menuitem"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                <button
+                  onClick={() => { logout(); setIsMenuOpen(false); }}
+                  className="flex items-center w-full px-4 py-3 text-red-600 hover:text-red-700 hover:bg-red-50 font-medium rounded-lg transition-colors text-left"
+                >
+                  <LogOut className="h-4 w-4 mr-3" /> Logout
+                </button>
+              </>
+            ) : (
+              <div className="px-4">
+                <Button 
+                  variant="blue" 
+                  className="w-full" 
+                  onClick={() => { setIsMenuOpen(false); navigate("/login"); }}
+                >
+                  Get Started
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
+    </div>,
+    document.body
+  ) : null;
+
   return (
+    <>
     <nav className={`bg-white/95 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 transition-all duration-300 ${isScrolled ? "shadow-lg bg-white/98 backdrop-blur-lg" : "shadow-sm"} nav-modern-transparent`}> 
       {/* Main Navigation Row */}
       {!isScrolled ? (
@@ -250,114 +348,10 @@ const StickyNavigation = ({
           </div>
         </>
       )}
-      {/* Mobile Navigation Menu (always rendered, works in both header states) */}
-      {isMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop overlay with solid background */}
-          <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
-            onClick={() => setIsMenuOpen(false)}
-            aria-hidden="true"
-          />
-          
-          {/* Menu content with solid white background */}
-          <div 
-            id="mobile-menu"
-            className="absolute top-0 right-0 w-80 h-full bg-white shadow-2xl border-l border-gray-200"
-            role="menu"
-            aria-labelledby="mobile-menu-button"
-          >
-            {/* Menu header with close button */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white">
-              <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
-              <button
-                onClick={() => setIsMenuOpen(false)}
-                className="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                aria-label="Close menu"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            {/* Menu content with solid background */}
-            <div className="flex flex-col h-full bg-white overflow-y-auto" role="navigation" aria-label="Mobile navigation menu">
-              <div className="flex flex-col space-y-1 p-6">
-                {/* Main navigation items */}
-                {[...leftMenu, ...filteredRightMenu].map((item, index) => (
-                  <Link
-                    key={item.label}
-                    to={item.to}
-                    className="flex items-center px-4 py-3 text-gray-800 hover:text-blue-700 hover:bg-blue-50 font-medium rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                    onClick={() => setIsMenuOpen(false)}
-                    tabIndex={0}
-                    role="menuitem"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setIsMenuOpen(false);
-                      }
-                    }}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-                
-                {/* Separator */}
-                <div className="border-t border-gray-200 my-4" />
-                
-                {/* Auth/Account section with solid background */}
-                <div className="space-y-1">
-                  {isAuthenticated ? (
-                    <>
-                      {roleLinks.map((item) => (
-                        <Link
-                          key={item.label}
-                          to={item.to}
-                          className="flex items-center px-4 py-3 text-gray-800 hover:text-blue-700 hover:bg-blue-50 font-medium rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                          onClick={() => setIsMenuOpen(false)}
-                          tabIndex={0}
-                          role="menuitem"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              setIsMenuOpen(false);
-                            }
-                          }}
-                        >
-                          {item.label}
-                        </Link>
-                      ))}
-                      <button
-                        onClick={() => {
-                          logout();
-                          setIsMenuOpen(false);
-                        }}
-                        className="flex items-center w-full px-4 py-3 text-red-600 hover:text-red-700 hover:bg-red-50 font-medium rounded-lg transition-colors text-left"
-                      >
-                        <LogOut className="h-4 w-4 mr-3" /> Logout
-                      </button>
-                    </>
-                  ) : (
-                    <div className="px-4">
-                      <Button 
-                        variant="blue" 
-                        className="w-full" 
-                        onClick={() => { 
-                          setIsMenuOpen(false); 
-                          navigate("/login"); 
-                        }}
-                      >
-                        Get Started
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Mobile Navigation Menu rendered in a portal to avoid containment issues */}
+      {mobileMenu}
     </nav>
+    </>
   );
 };
 
