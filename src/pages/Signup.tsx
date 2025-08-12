@@ -243,11 +243,11 @@ const Signup = () => {
                   required
                 >
                   <option value="">Select your role</option>
-                  <option value="buyer">Property Buyer</option>
-                  <option value="renter">Property Renter</option>
-                  <option value="agent">Real Estate Agent</option>
-                  <option value="owner">Property Owner/Landlord</option>
-                  <option value="professional">Service Provider (Lawyer, Surveyor, etc.)</option>
+                  <option value="buyer">Buyer</option>
+                  <option value="renter">Renter</option>
+                  <option value="agent">Agent</option>
+                  <option value="owner">Owner/Landlord</option>
+                  <option value="professional">Service Provider</option>
                 </select>
               </div>
               

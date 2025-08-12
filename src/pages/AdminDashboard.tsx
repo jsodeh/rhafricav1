@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import EmptyState from "@/components/EmptyState";
@@ -47,6 +48,8 @@ const AdminDashboard = () => {
   const { profile, isLoading: profileLoading } = useUserProfile();
   const [activeTab, setActiveTab] = useState("overview");
   const [userFilter, setUserFilter] = useState("all");
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
 
   // Real admin data
   const adminData = {
@@ -89,7 +92,7 @@ const AdminDashboard = () => {
     const fetchUsers = async () => {
       setLoadingUsers(true);
       setUsersError(null);
-      const { data, error } = await supabase.from('user_profiles').select('*');
+      const { data, error } = await supabase.from('user_profiles').select('*').order('created_at', { ascending: false });
       if (error) {
         setUsersError(error.message);
       } else {
@@ -562,16 +565,90 @@ const AdminDashboard = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Users</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="suspended">Suspended</SelectItem>
+                    <SelectItem value="buyer">Buyer</SelectItem>
+                    <SelectItem value="renter">Renter</SelectItem>
+                    <SelectItem value="agent">Agent</SelectItem>
+                    <SelectItem value="owner">Owner</SelectItem>
+                    <SelectItem value="professional">Service Provider</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <Button className="flex items-center gap-2">
+              <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="flex items-center gap-2">
                 <Download className="h-4 w-4" />
-                Export Users
-              </Button>
+                    New User
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{editingUser ? 'Edit User' : 'Create User'}</DialogTitle>
+                  </DialogHeader>
+                  {/* Simple form for CRUD; uses user_profiles only */}
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const form = new FormData(e.currentTarget as HTMLFormElement);
+                      const payload: any = {
+                        full_name: String(form.get('full_name') || ''),
+                        email: String(form.get('email') || ''),
+                        phone: String(form.get('phone') || ''),
+                        account_type: String(form.get('account_type') || 'buyer'),
+                      };
+                      try {
+                        if (editingUser) {
+                          const { error } = await supabase
+                            .from('user_profiles')
+                            .update(payload)
+                            .eq('id', editingUser.id);
+                          if (error) throw error;
+                        } else {
+                          const { error } = await supabase
+                            .from('user_profiles')
+                            .insert(payload);
+                          if (error) throw error;
+                        }
+                        setIsUserDialogOpen(false);
+                        setEditingUser(null);
+                        const { data } = await supabase.from('user_profiles').select('*').order('created_at', { ascending: false });
+                        setUsers(data || []);
+                      } catch (err:any) {
+                        setUsersError(err.message || 'Failed to save user');
+                      }
+                    }}
+                    className="space-y-3"
+                  >
+                    <div>
+                      <Label htmlFor="full_name">Full Name</Label>
+                      <Input id="full_name" name="full_name" defaultValue={editingUser?.full_name || ''} required />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <Input id="email" name="email" type="email" defaultValue={editingUser?.email || ''} required />
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input id="phone" name="phone" defaultValue={editingUser?.phone || ''} />
+                    </div>
+                    <div>
+                      <Label htmlFor="account_type">Role</Label>
+                      <select id="account_type" name="account_type" defaultValue={editingUser?.account_type || 'buyer'} className="w-full border rounded px-2 py-2">
+                        <option value="buyer">Buyer</option>
+                        <option value="renter">Renter</option>
+                        <option value="agent">Agent</option>
+                        <option value="owner">Owner</option>
+                        <option value="professional">Service Provider</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => { setIsUserDialogOpen(false); setEditingUser(null); }}>Cancel</Button>
+                      <Button type="submit">Save</Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
 
             <Card>
