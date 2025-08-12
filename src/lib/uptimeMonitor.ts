@@ -127,7 +127,8 @@ class UptimeMonitor {
 
     // Handle page unload
     window.addEventListener('beforeunload', () => {
-      this.recordEvent('down', 'Page unloading');
+      // Do not record a 'down' event that might trigger auto-recovery reloads
+      this.recordEvent('degraded', 'Page unloading');
     });
   }
 

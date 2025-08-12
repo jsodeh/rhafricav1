@@ -222,14 +222,17 @@ export const useNotifications = () => {
         metadata,
       };
 
-      // Insert into Supabase and get the created record
+      // Insert into Supabase and get the created record (ignore failures)
       const { data, error } = await supabase
         .from('notifications')
         .insert(newNotificationData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.warn('createNotification ignored (non-fatal):', error.message);
+        return null;
+      }
       
       const newNotification = data as Notification;
 

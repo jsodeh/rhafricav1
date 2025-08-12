@@ -126,8 +126,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const user = convertSupabaseUser(session.user);
           setUser(user);
           setIsAuthenticated(true);
-          // Ensure role comes from latest profile; block routing until done
-          await refreshUserFromProfile(session.user.id);
+          // Allow routing immediately; refresh role asynchronously
+          setRoleReady(true);
+          refreshUserFromProfile(session.user.id);
         }
       } catch (error) {
         console.error('Error checking session:', error);
@@ -151,7 +152,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const user = convertSupabaseUser(session.user);
           setUser(user);
           setIsAuthenticated(true);
-          await refreshUserFromProfile(session.user.id);
+          setRoleReady(true);
+          refreshUserFromProfile(session.user.id);
           
           // Welcome notification will be handled by components that use useNotifications
 

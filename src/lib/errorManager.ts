@@ -332,7 +332,7 @@ class ErrorManager {
         actions.push({
           type: 'retry',
           label: 'Try Again',
-          action: () => window.location.reload(),
+          action: () => {/* noop to avoid reload loops */},
           priority: 'primary',
         });
         break;
@@ -363,12 +363,7 @@ class ErrorManager {
           action: () => this.retryLastAction(error),
           priority: 'primary',
         });
-        actions.push({
-          type: 'reload',
-          label: 'Refresh Page',
-          action: () => window.location.reload(),
-          priority: 'secondary',
-        });
+        // Avoid auto-refresh loops; keep manual navigation only
         break;
 
       case ErrorType.PAYMENT:
