@@ -78,11 +78,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const refreshUserFromProfile = useCallback(async (userId: string) => {
     try {
       setRoleReady(false);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000);
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('full_name, phone, avatar_url, account_type')
         .eq('user_id', userId)
         .single();
+      clearTimeout(timeout);
 
       if (profile) {
         setUser(prev => prev ? {
@@ -93,6 +96,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           accountType: profile.account_type || prev.accountType,
         } : prev);
         setResolvedRole(normalizeAccountType(profile.account_type));
+        // If DB still shows default 'buyer' but metadata claims stronger role, self-heal once
+        const meta = normalizeAccountType(user?.accountType);
+        if ((profile.account_type === 'buyer') && meta !== 'buyer') {
+          try {
+            await supabase.from('user_profiles').update({ account_type: meta }).eq('user_id', userId);
+            setResolvedRole(meta);
+          } catch {}
+        }
       } else {
         // No profile row yet; fall back to auth metadata
         setResolvedRole(prev => normalizeAccountType(user?.accountType) || prev);

@@ -24,8 +24,16 @@ const AuthCallback = () => {
           return;
         }
 
-        // Check for specific auth events
+        // Check for specific auth events or errors
         const type = searchParams.get('type');
+        const err = searchParams.get('error');
+        const errCode = searchParams.get('error_code');
+        const errDesc = searchParams.get('error_description');
+        if (err || errCode) {
+          setStatus('error');
+          setMessage((errDesc || err || errCode || 'Invalid or expired verification link') + '. Please sign in again.');
+          return;
+        }
         const accessToken = searchParams.get('access_token');
         const refreshToken = searchParams.get('refresh_token');
 
@@ -39,6 +47,31 @@ const AuthCallback = () => {
 
         // If we have a session, mark as success
         if (data.session) {
+          // Ensure user_profiles.account_type is set based on metadata for fresh signups
+          if (type === 'signup' || type === 'email_confirmation') {
+            try {
+              const metaType = (data.session.user.user_metadata?.accountType || '').toString().toLowerCase();
+              const normalize = (v: string) => {
+                if (v.includes('admin')) return 'admin';
+                if (v.includes('agent')) return 'agent';
+                if (v.includes('owner')) return 'owner';
+                if (v.includes('professional') || v.includes('service')) return 'professional';
+                if (v.includes('renter')) return 'renter';
+                if (v.includes('buyer') || v.includes('premium')) return 'buyer';
+                return 'buyer';
+              };
+              const acct = normalize(metaType);
+              await supabase.from('user_profiles').upsert({
+                user_id: data.session.user.id,
+                account_type: acct,
+                email: data.session.user.email || undefined,
+                full_name: data.session.user.user_metadata?.full_name || undefined,
+              }, { onConflict: 'user_id' });
+            } catch (e) {
+              console.warn('Failed to upsert user_profiles on signup confirmation:', e);
+            }
+          }
+
           setStatus('success');
           
           // Small delay for better UX
