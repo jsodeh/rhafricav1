@@ -18,7 +18,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const location = useLocation();
 
   // Show loading spinner while checking authentication
-  if (isLoading || !roleReady) {
+  // Wait for role resolution only when authenticated; otherwise allow redirect to login
+  if (isLoading || (isAuthenticated && !roleReady)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">

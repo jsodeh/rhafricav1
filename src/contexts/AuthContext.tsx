@@ -230,6 +230,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await supabase.auth.signOut();
       setUser(null);
       setIsAuthenticated(false);
+      setResolvedRole('user');
+      setRoleReady(false);
     } catch (error) {
       console.error('Logout error:', error);
     }
