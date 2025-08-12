@@ -34,11 +34,19 @@ import {
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [showProfileSetup, setShowProfileSetup] = useState(false);
-  const { user } = useAuth();
+  const { user, resolvedRole, roleReady } = useAuth();
   const { profile, savedProperties, savedSearches, isLoading: profileLoading, error: profileError } = useUserProfile();
   const { activities, isLoading: activitiesLoading, error: activitiesError } = useActivity();
   const { showError } = useToast();
   const navigate = useNavigate();
+
+  // Redirect admins to their dashboard immediately
+  useEffect(() => {
+    if (!roleReady) return;
+    if (resolvedRole === 'admin') {
+      navigate('/admin-dashboard', { replace: true });
+    }
+  }, [roleReady, resolvedRole, navigate]);
 
   // Show profile setup for new users or incomplete profiles
   useEffect(() => {
@@ -55,7 +63,7 @@ const Dashboard = () => {
                         !profile.full_name || 
                         !profile.phone || 
                         !user.emailVerified ||
-                        (user.accountType?.toLowerCase().includes('agent') && !profile.verification_status);
+                         (resolvedRole === 'agent' && !((profile as any)?.verification_status));
       
       console.log('Dashboard: Needs setup?', needsSetup);
       
@@ -63,7 +71,7 @@ const Dashboard = () => {
         setShowProfileSetup(true);
       }
     }
-  }, [user, profile, profileLoading]);
+  }, [user, profile, profileLoading, resolvedRole]);
 
   // Handle errors with user-friendly messages
   useEffect(() => {
@@ -102,7 +110,18 @@ const Dashboard = () => {
                 Welcome back, {user?.name?.split(" ")[0] || "User"}!
               </h1>
               <p className="text-gray-600">
-                {user?.accountType || "User"} • Member since {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                {(() => {
+                  const roleToLabel: Record<string, string> = {
+                    admin: 'Admin',
+                    agent: 'Real Estate Agent',
+                    owner: 'Property Owner',
+                    professional: 'Service Professional',
+                    buyer: 'Buyer',
+                    renter: 'Renter',
+                    user: 'User',
+                  };
+                  return roleToLabel[resolvedRole] || (user?.accountType || 'User');
+                })()} • Member since {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </p>
             </div>
           </div>
@@ -350,7 +369,7 @@ const Dashboard = () => {
                       <span className="text-sm">Find Agents</span>
                     </Button>
                   </Link>
-                  {user?.accountType?.toLowerCase().includes('agent') ? (
+                   {resolvedRole === 'agent' ? (
                     <Link to="/agent-dashboard">
                       <Button
                         variant="outline"

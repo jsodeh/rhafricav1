@@ -71,10 +71,8 @@ const StickyNavigation = ({
   const roleLinks = [
     getPrimaryDashboardLink(),
     { label: "Messages", to: "/messages" },
-    // Add Super Admin link for admin users
-    ...((resolvedRole === 'admin') ? [
-      { label: "Super Admin", to: "/super-admin" }
-    ] : [])
+    // Super Admin link should only be shown if user has explicit super-admin capability.
+    // Currently we hide it for normal admins to avoid confusion.
   ].filter(Boolean);
 
   // Filter rightMenu for 'Manage Rentals' based on user role

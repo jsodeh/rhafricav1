@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,12 +20,28 @@ const Login = () => {
   const [resetEmail, setResetEmail] = useState("");
   const [resetSent, setResetSent] = useState(false);
 
-  const { login, resetPassword } = useAuth();
+  const { login, resetPassword, roleReady, resolvedRole } = useAuth();
   const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
   const from = location.state?.from?.pathname || "/dashboard";
+  const [didLogin, setDidLogin] = useState(false);
+
+  const roleHomePath = useMemo(() => {
+    switch (resolvedRole) {
+      case 'admin':
+        return '/admin-dashboard';
+      case 'agent':
+        return '/agent-dashboard';
+      case 'owner':
+        return '/owner-dashboard';
+      case 'professional':
+        return '/service-dashboard';
+      default:
+        return from;
+    }
+  }, [resolvedRole, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +53,7 @@ const Login = () => {
       
       if (result.success) {
         showSuccess("Welcome back! You've been signed in successfully.");
-        navigate(from, { replace: true });
+        setDidLogin(true);
       } else {
         setError(result.error || "Login failed");
       }
@@ -47,6 +63,13 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  // After a successful login, wait until role resolution completes, then redirect to the role home path
+  useEffect(() => {
+    if (!didLogin) return;
+    if (!roleReady) return; // wait for profile hydration
+    navigate(roleHomePath, { replace: true });
+  }, [didLogin, roleReady, roleHomePath, navigate]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,10 +81,7 @@ const Login = () => {
       
       if (result.success) {
         setResetSent(true);
-        toast({
-          title: "Reset email sent",
-          description: "Check your email for password reset instructions.",
-        });
+        showSuccess("Check your email for password reset instructions.", "Reset email sent");
       } else {
         setError(result.error || "Failed to send reset email");
       }
