@@ -37,17 +37,17 @@ const StickyNavigation = ({
   showSearchInNav = false,
 }: StickyNavigationProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, resolvedRole } = useAuth();
   const { profile } = useUserProfile();
   const navigate = useNavigate();
 
   // Function to get the primary dashboard link based on user role
   const getPrimaryDashboardLink = () => {
-    const accountType = (profile?.account_type || user?.accountType || "").toLowerCase();
-    if (accountType.includes("admin")) return { label: "Admin Dashboard", to: "/admin-dashboard" };
-    if (accountType.includes("agent")) return { label: "Agent Dashboard", to: "/agent-dashboard" };
-    if (accountType.includes("owner")) return { label: "Owner Dashboard", to: "/owner-dashboard" };
-    if (accountType.includes("service") || accountType.includes("professional")) return { label: "Service Dashboard", to: "/service-dashboard" };
+    const accountType = resolvedRole;
+    if (accountType === 'admin') return { label: "Admin Dashboard", to: "/admin-dashboard" };
+    if (accountType === 'agent') return { label: "Agent Dashboard", to: "/agent-dashboard" };
+    if (accountType === 'owner') return { label: "Owner Dashboard", to: "/owner-dashboard" };
+    if (accountType === 'professional') return { label: "Service Dashboard", to: "/service-dashboard" };
     return { label: "Dashboard", to: "/dashboard" }; // Default for buyers, renters, etc.
   };
 
@@ -56,7 +56,7 @@ const StickyNavigation = ({
     getPrimaryDashboardLink(),
     { label: "Messages", to: "/messages" },
     // Add Super Admin link for admin users
-    ...(((profile?.account_type || user?.accountType || '').toLowerCase().includes('admin')) ? [
+    ...((resolvedRole === 'admin') ? [
       { label: "Super Admin", to: "/super-admin" }
     ] : [])
   ].filter(Boolean);
@@ -65,8 +65,7 @@ const StickyNavigation = ({
   const filteredRightMenu = rightMenu.filter(item => {
     if (item.label !== "Manage Rentals") return true;
     if (!isAuthenticated) return false;
-    const type = (profile?.account_type || user?.accountType || "").toLowerCase();
-    return type.includes("agent") || type.includes("owner");
+    return resolvedRole === 'agent' || resolvedRole === 'owner';
   });
 
   return (

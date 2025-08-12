@@ -14,11 +14,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRole,
   fallbackPath = '/login',
 }) => {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, roleReady, resolvedRole } = useAuth();
   const location = useLocation();
 
   // Show loading spinner while checking authentication
-  if (isLoading) {
+  if (isLoading || !roleReady) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -36,7 +36,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check role-based access if required
   if (requiredRole) {
-    const userRole = (user.accountType || '').toLowerCase();
+    const userRole = resolvedRole;
     const hasRequiredRole = checkUserRole(userRole, requiredRole);
 
     if (!hasRequiredRole) {
@@ -61,18 +61,18 @@ const checkUserRole = (userRole: string, requiredRole: string): boolean => {
   };
 
   const allowedRoles = roleHierarchy[requiredRole as keyof typeof roleHierarchy] || [];
-  return allowedRoles.some(role => userRole.includes(role));
+  return allowedRoles.includes(userRole as any);
 };
 
 // Helper function to get dashboard path based on user role
 const getDashboardPath = (userRole: string): string => {
-  if (userRole.includes('admin')) {
+  if (userRole === 'admin') {
     return '/admin-dashboard';
-  } else if (userRole.includes('agent')) {
+  } else if (userRole === 'agent') {
     return '/agent-dashboard';
-  } else if (userRole.includes('owner')) {
+  } else if (userRole === 'owner') {
     return '/owner-dashboard';
-  } else if (userRole.includes('professional') || userRole.includes('service')) {
+  } else if (userRole === 'professional') {
     return '/service-dashboard';
   } else {
     return '/dashboard'; // Default dashboard for buyers/renters

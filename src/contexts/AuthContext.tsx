@@ -17,6 +17,9 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  // Role resolution
+  resolvedRole: 'admin' | 'agent' | 'owner' | 'professional' | 'buyer' | 'renter' | 'user';
+  roleReady: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   signup: (userData: any) => Promise<{ success: boolean; error?: string }>;
@@ -44,6 +47,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [roleReady, setRoleReady] = useState(false);
+  const [resolvedRole, setResolvedRole] = useState<'admin' | 'agent' | 'owner' | 'professional' | 'buyer' | 'renter' | 'user'>('user');
+
+  const normalizeAccountType = (value?: string | null): typeof resolvedRole => {
+    const v = (value || '').toLowerCase();
+    if (v.includes('admin') || v === 'super_admin') return 'admin';
+    if (v.includes('agent')) return 'agent';
+    if (v.includes('owner')) return 'owner';
+    if (v.includes('professional') || v.includes('service')) return 'professional';
+    if (v.includes('renter')) return 'renter';
+    if (v.includes('buyer') || v.includes('premium')) return 'buyer';
+    return 'user';
+  };
 
   // Convert Supabase user to our User interface
   const convertSupabaseUser = (supabaseUser: SupabaseUser): User => {
@@ -61,6 +77,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Hydrate/override accountType and related profile fields from user_profiles table
   const refreshUserFromProfile = useCallback(async (userId: string) => {
     try {
+      setRoleReady(false);
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('full_name, phone, avatar_url, account_type')
@@ -75,10 +92,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           profilePhoto: profile.avatar_url || prev.profilePhoto,
           accountType: profile.account_type || prev.accountType,
         } : prev);
+        setResolvedRole(normalizeAccountType(profile.account_type));
+      } else {
+        // No profile row yet; fall back to auth metadata
+        setResolvedRole(prev => normalizeAccountType(user?.accountType) || prev);
       }
     } catch (err) {
       console.warn('refreshUserFromProfile failed:', err);
+      setResolvedRole(prev => normalizeAccountType(user?.accountType) || prev);
     }
+    setRoleReady(true);
   }, []);
 
   // Check for existing session on mount
@@ -92,7 +115,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const user = convertSupabaseUser(session.user);
           setUser(user);
           setIsAuthenticated(true);
-          // Ensure role comes from latest profile
+          // Ensure role comes from latest profile; block routing until done
           await refreshUserFromProfile(session.user.id);
         }
       } catch (error) {
@@ -124,6 +147,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
           setIsAuthenticated(false);
+          setRoleReady(false);
+          setResolvedRole('user');
         } else if (event === 'USER_UPDATED' && session?.user) {
           const user = convertSupabaseUser(session.user);
           setUser(user);
@@ -159,6 +184,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           profilePhoto: next.avatar_url ?? prev.profilePhoto,
           accountType: next.account_type ?? prev.accountType,
         } : prev);
+        setResolvedRole(normalizeAccountType(next.account_type ?? user?.accountType));
+        setRoleReady(true);
       })
       .subscribe();
 
@@ -395,6 +422,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     isAuthenticated,
     isLoading,
+    resolvedRole,
+    roleReady,
     login,
     logout,
     signup,
