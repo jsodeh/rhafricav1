@@ -95,7 +95,7 @@ const AdminDashboard = () => {
   const [loadingFinance, setLoadingFinance] = useState(false);
   const [financeError, setFinanceError] = useState<string | null>(null);
   const [financialData, setFinancialData] = useState<any[]>([]);
-  const { notifications } = useNotifications();
+  const { notifications, notifyUser } = useNotifications();
   const { deleteUser, moderateProperty } = useAdminOperations();
 
   useEffect(() => {
@@ -909,6 +909,17 @@ const AdminDashboard = () => {
                               const { error } = await supabase.from('properties').update({ verified: true }).eq('id', approval.id);
                               if (error) throw error;
                               setApprovals(prev => prev.filter(a => a.id !== approval.id));
+                              // Notify owner/agent if available
+                              try {
+                                const { data: prop } = await supabase.from('properties').select('owner_id, agent_id, title').eq('id', approval.id).maybeSingle();
+                                const title = prop?.title || 'Property';
+                                if (prop?.owner_id) await notifyUser(prop.owner_id, 'Listing approved', `${title} has been approved`, 'success', 'property', `/properties/${approval.id}`, { propertyId: approval.id });
+                                if (prop?.agent_id) {
+                                  // Look up agent user_id by agent_id
+                                  const { data: agent } = await supabase.from('real_estate_agents').select('user_id').eq('id', prop.agent_id).maybeSingle();
+                                  if (agent?.user_id) await notifyUser(agent.user_id, 'Listing approved', `${title} has been approved`, 'success', 'property', `/properties/${approval.id}`, { propertyId: approval.id });
+                                }
+                              } catch {}
                             } catch (e:any) {
                               setApprovalsError(e.message || 'Failed to approve');
                             }
@@ -920,6 +931,15 @@ const AdminDashboard = () => {
                             try {
                               const ok = await moderateProperty(approval.id, 'reject');
                               if (ok) setApprovals(prev => prev.filter(a => a.id !== approval.id));
+                              try {
+                                const { data: prop } = await supabase.from('properties').select('owner_id, agent_id, title').eq('id', approval.id).maybeSingle();
+                                const title = prop?.title || 'Property';
+                                if (prop?.owner_id) await notifyUser(prop.owner_id, 'Listing rejected', `${title} was rejected`, 'warning', 'property', undefined, { propertyId: approval.id });
+                                if (prop?.agent_id) {
+                                  const { data: agent } = await supabase.from('real_estate_agents').select('user_id').eq('id', prop.agent_id).maybeSingle();
+                                  if (agent?.user_id) await notifyUser(agent.user_id, 'Listing rejected', `${title} was rejected`, 'warning', 'property', undefined, { propertyId: approval.id });
+                                }
+                              } catch {}
                             } catch (e:any) {
                               setApprovalsError(e.message || 'Failed to reject');
                             }

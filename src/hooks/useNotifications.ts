@@ -267,31 +267,48 @@ export const useNotifications = () => {
     metadata?: Record<string, any>
   ) => {
     try {
-      const { data: admins, error: adminsError } = await supabase
-        .from('user_profiles')
-        .select('user_id')
-        .in('account_type', ['admin', 'super_admin']);
-      if (adminsError) throw adminsError;
-      const rows = (admins || []).filter((a: any) => a.user_id).map((a: any) => ({
-        user_id: a.user_id,
-        title,
-        message,
-        type,
-        category,
-        read: false,
-        action_url: actionUrl,
-        metadata,
-      }));
-      if (rows.length === 0) return { success: true, inserted: 0 };
-      const { error: insertError } = await supabase.from('notifications').insert(rows);
-      if (insertError) {
-        console.warn('notifyAdmins failed:', insertError.message);
-        return { success: false, inserted: 0, error: insertError.message };
-      }
-      return { success: true, inserted: rows.length };
+      // Prefer secure RPC that inserts notifications for admins
+      const { data, error } = await supabase.rpc('notify_admins', {
+        p_title: title,
+        p_message: message,
+        p_type: type,
+        p_category: category,
+        p_action_url: actionUrl ?? null,
+        p_metadata: metadata ?? null,
+      });
+      if (error) throw error;
+      return { success: true, inserted: (data as any) ?? 0 };
+    } catch (rpcErr: any) {
+      console.warn('notifyAdmins RPC not available or failed:', rpcErr?.message || rpcErr);
+      return { success: false, inserted: 0, error: rpcErr?.message };
+    }
+  }, []);
+
+  // Notify a specific user by user_id via RPC
+  const notifyUser = useCallback(async (
+    userId: string,
+    title: string,
+    message: string,
+    type: Notification['type'] = 'info',
+    category: Notification['category'] = 'system',
+    actionUrl?: string,
+    metadata?: Record<string, any>
+  ) => {
+    try {
+      const { data, error } = await supabase.rpc('notify_user', {
+        p_user_id: userId,
+        p_title: title,
+        p_message: message,
+        p_type: type,
+        p_category: category,
+        p_action_url: actionUrl ?? null,
+        p_metadata: metadata ?? null,
+      });
+      if (error) throw error;
+      return { success: true };
     } catch (e: any) {
-      console.warn('notifyAdmins error:', e?.message || e);
-      return { success: false, inserted: 0, error: e?.message };
+      console.warn('notifyUser RPC failed:', e?.message || e);
+      return { success: false, error: e?.message };
     }
   }, []);
 
@@ -455,6 +472,7 @@ export const useNotifications = () => {
     deleteNotification,
     createNotification,
     notifyAdmins,
+    notifyUser,
     updatePreferences,
     sendPushNotification,
     sendEmailNotification,

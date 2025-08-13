@@ -78,6 +78,30 @@ const AuthCallback = () => {
               try {
                 await notifyAdmins('New user signup', `${data.session.user.email || 'A user'} just verified their account`, 'info', 'system', '/admin-dashboard', { userId: data.session.user.id });
               } catch {}
+
+              // If the account type is agent, ensure a real_estate_agents row exists (pending verification)
+              if (acct === 'agent') {
+                try {
+                  const agentPayload: any = {
+                    user_id: data.session.user.id,
+                    phone: data.session.user.user_metadata?.phone || null,
+                    agency_name: data.session.user.user_metadata?.agency_name || null,
+                    license_number: data.session.user.user_metadata?.license_number || null,
+                    verification_status: 'pending' as any,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                  };
+                  const { error: agentErr } = await supabase
+                    .from('real_estate_agents')
+                    .upsert(agentPayload, { onConflict: 'user_id' });
+                  if (agentErr) throw agentErr;
+                  try {
+                    await notifyAdmins('Agent profile submitted', `${data.session.user.email || 'An agent'} submitted a profile and awaits verification`, 'info', 'system', '/admin-dashboard', { userId: data.session.user.id });
+                  } catch {}
+                } catch (e) {
+                  console.warn('Failed to ensure agent profile row:', e);
+                }
+              }
             } catch (e) {
               console.warn('Failed to upsert user_profiles on signup confirmation:', e);
             }

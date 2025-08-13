@@ -35,6 +35,9 @@ import ChatManagement from "@/components/ChatManagement";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useProperties } from "@/hooks/useProperties";
+import { supabase } from "@/integrations/supabase/client";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useToast } from "@/hooks/use-toast";
 import EmptyState from "@/components/EmptyState";
 
 // Real agent data will be loaded from user context and profile
@@ -51,21 +54,129 @@ const AgentDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [listingFilter, setListingFilter] = useState("all");
   const { properties, isLoading: propsLoading, error: propsError, isEmpty } = useProperties({});
+  const { notifyAdmins } = useNotifications();
+  const { toast } = useToast();
+
+  // Agent profile form state
+  const [agentRow, setAgentRow] = useState<any | null>(null);
+  const [agentLoading, setAgentLoading] = useState(false);
+  const [agentSaving, setAgentSaving] = useState(false);
+  const [agencyName, setAgencyName] = useState("");
+  const [licenseNumber, setLicenseNumber] = useState("");
+  const [agentPhone, setAgentPhone] = useState("");
+  const [bio, setBio] = useState("");
+  const [yearsExperience, setYearsExperience] = useState<string>("");
+  const [specializations, setSpecializations] = useState<string>("");
+  const [instagram, setInstagram] = useState("");
+  const [facebook, setFacebook] = useState("");
+  const [twitter, setTwitter] = useState("");
+  const [website, setWebsite] = useState("");
+
+  // Load agent row
+  React.useEffect(() => {
+    if (!user?.id) return;
+    const load = async () => {
+      setAgentLoading(true);
+      try {
+        const { data } = await supabase
+          .from('real_estate_agents')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        setAgentRow(data || null);
+        setAgencyName(data?.agency_name || "");
+        setLicenseNumber(data?.license_number || "");
+        setAgentPhone(data?.phone || profile?.phone || user?.phone || "");
+        setBio(data?.bio || "");
+        setYearsExperience(data?.years_experience ? String(data.years_experience) : "");
+        setSpecializations(Array.isArray(data?.specializations) ? data.specializations.join(', ') : "");
+        setInstagram(data?.social_media?.instagram || "");
+        setFacebook(data?.social_media?.facebook || "");
+        setTwitter(data?.social_media?.twitter || "");
+        setWebsite(data?.social_media?.website || "");
+      } finally {
+        setAgentLoading(false);
+      }
+    };
+    load();
+  }, [user?.id]);
+
+  const saveAgentProfile = async () => {
+    if (!user?.id) return;
+    setAgentSaving(true);
+    try {
+      const payload: any = {
+        user_id: user.id,
+        agency_name: agencyName || null,
+        license_number: licenseNumber || null,
+        phone: agentPhone || null,
+        bio: bio || null,
+        years_experience: yearsExperience ? Number(yearsExperience) : null,
+        specializations: specializations
+          ? specializations.split(',').map(s => s.trim()).filter(Boolean)
+          : [],
+        social_media: {
+          instagram: instagram || null,
+          facebook: facebook || null,
+          twitter: twitter || null,
+          website: website || null,
+        },
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from('real_estate_agents')
+        .upsert(payload, { onConflict: 'user_id' })
+        .select()
+        .maybeSingle();
+      if (error) throw error;
+      setAgentRow(data);
+      toast({ title: 'Saved', description: 'Agent profile updated.' });
+
+      // If there was no row before, notify admins
+      if (!agentRow) {
+        try { await notifyAdmins('Agent profile submitted', `${user.email || 'An agent'} submitted a profile and awaits verification`, 'info', 'system', '/admin-dashboard', { userId: user.id }); } catch {}
+      }
+    } catch (e: any) {
+      toast({ title: 'Save failed', description: e?.message || 'Could not save agent profile', variant: 'destructive' });
+    } finally {
+      setAgentSaving(false);
+    }
+  };
+
+  const requestVerification = async () => {
+    if (!user?.id) return;
+    try {
+      const { error } = await supabase
+        .from('real_estate_agents')
+        .update({ verification_status: 'pending', updated_at: new Date().toISOString() })
+        .eq('user_id', user.id);
+      if (error) throw error;
+      setAgentRow(prev => prev ? { ...prev, verification_status: 'pending' } : prev);
+      toast({ title: 'Verification requested', description: 'An admin will review your profile shortly.' });
+      try { await notifyAdmins('Agent verification requested', `${user.email || 'An agent'} requested verification`, 'info', 'system', '/admin-dashboard', { userId: user.id }); } catch {}
+    } catch (e: any) {
+      toast({ title: 'Request failed', description: e?.message || 'Could not request verification', variant: 'destructive' });
+    }
+  };
+
+  // Aggregate counts
+  const activeListingsCount = (properties || []).filter((p: any) => (p.status || '').toLowerCase() === 'for_sale' || (p.status || '').toLowerCase() === 'for_rent').length;
 
   // Real agent data from user and profile
   const agentData = {
     name: user?.name || "Agent",
     email: user?.email || "",
-    phone: profile?.phone || user?.phone || "",
-    license: "Not provided",
-    company: "Real Estate Hotspot",
+    phone: agentPhone || profile?.phone || user?.phone || "",
+    license: licenseNumber || "Not provided",
+    company: agencyName || "",
     joinDate: user ? new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "",
     profilePhoto: user?.profilePhoto || profile?.avatar_url || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
     rating: 0, // Will be calculated from real reviews
     totalReviews: 0, // Will be fetched from database
     totalSales: 0, // Will be calculated from real sales
     totalCommission: "₦0", // Will be calculated from real data
-    activeListings: 0, // Will be fetched from properties table
+    activeListings: activeListingsCount, // from properties
     pendingDeals: 0,
   };
 
@@ -286,9 +397,10 @@ const AgentDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Button
+                   <Button
                     variant="outline"
                     className="w-full h-16 flex flex-col gap-2"
+                    onClick={() => (window.location.href = '/properties/add')}
                   >
                     <Plus className="h-5 w-5" />
                     <span className="text-sm">Add Listing</span>
@@ -296,6 +408,7 @@ const AgentDashboard = () => {
                   <Button
                     variant="outline"
                     className="w-full h-16 flex flex-col gap-2"
+                    onClick={() => (window.location.href = '/clients/new')}
                   >
                     <Users className="h-5 w-5" />
                     <span className="text-sm">Add Client</span>
@@ -303,6 +416,7 @@ const AgentDashboard = () => {
                   <Button
                     variant="outline"
                     className="w-full h-16 flex flex-col gap-2"
+                    onClick={() => (window.location.href = '/calendar')}
                   >
                     <Calendar className="h-5 w-5" />
                     <span className="text-sm">Schedule Tour</span>
@@ -310,6 +424,7 @@ const AgentDashboard = () => {
                   <Button
                     variant="outline"
                     className="w-full h-16 flex flex-col gap-2"
+                    onClick={() => setActiveTab('analytics')}
                   >
                     <BarChart3 className="h-5 w-5" />
                     <span className="text-sm">View Reports</span>
@@ -604,104 +719,74 @@ const AgentDashboard = () => {
           <TabsContent value="profile" className="space-y-6">
             <h2 className="text-2xl font-semibold">Agent Profile</h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Professional Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Professional Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      value={agentData.name}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                      readOnly
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                    <input type="text" value={agentData.name} className="w-full border border-gray-300 rounded-md px-3 py-2" readOnly />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={agentData.email}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                      readOnly
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" value={agentData.email} className="w-full border border-gray-300 rounded-md px-3 py-2" readOnly />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone
-                    </label>
-                    <input
-                      type="tel"
-                      value={agentData.phone}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                      readOnly
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                    <input type="tel" value={agentPhone} onChange={(e) => setAgentPhone(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      License Number
-                    </label>
-                    <input
-                      type="text"
-                      value={agentData.license}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                      readOnly
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Agency Name</label>
+                    <input type="text" value={agencyName} onChange={(e) => setAgencyName(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" />
                   </div>
-                  <Button className="w-full">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Profile
-                  </Button>
-                </CardContent>
-              </Card>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">License Number</label>
+                    <input type="text" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Years of Experience</label>
+                    <input type="number" min="0" value={yearsExperience} onChange={(e) => setYearsExperience(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                  <textarea value={bio} onChange={(e) => setBio(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 min-h-[100px]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Specializations (comma separated)</label>
+                  <input type="text" value={specializations} onChange={(e) => setSpecializations(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Luxury, Residential, Investment" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Instagram</label>
+                    <input type="text" value={instagram} onChange={(e) => setInstagram(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Facebook</label>
+                    <input type="text" value={facebook} onChange={(e) => setFacebook(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Twitter</label>
+                    <input type="text" value={twitter} onChange={(e) => setTwitter(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
+                    <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" />
+                  </div>
+                </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Business Settings</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <h4 className="font-medium">Commission Structure</h4>
-                      <p className="text-sm text-gray-600">
-                        Manage your commission rates
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Configure
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <h4 className="font-medium">Notification Preferences</h4>
-                      <p className="text-sm text-gray-600">
-                        Email and SMS settings
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Manage
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <h4 className="font-medium">Lead Sources</h4>
-                      <p className="text-sm text-gray-600">
-                        Configure lead tracking
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Setup
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={saveAgentProfile} disabled={agentSaving}>
+                    {agentSaving ? 'Saving...' : 'Save Profile'}
+                  </Button>
+                  <Button variant="outline" onClick={requestVerification} disabled={agentRow?.verification_status === 'pending' || agentSaving}>
+                    {agentRow?.verification_status === 'verified' ? 'Verified' : agentRow?.verification_status === 'pending' ? 'Pending Verification' : 'Request Verification'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowLeft, CheckCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Signup = () => {
   const [step, setStep] = useState(1);
@@ -86,6 +87,21 @@ const Signup = () => {
           title: "Account created successfully",
           description: "Please check your email to verify your account.",
         });
+
+        // If email confirmation is disabled and session exists immediately, seed agent row now
+        if (formData.userType === 'agent') {
+          try {
+            const { data: session } = await supabase.auth.getSession();
+            const uid = session?.session?.user?.id;
+            if (uid) {
+              await supabase.from('real_estate_agents').upsert({
+                user_id: uid,
+                phone: formData.phone,
+                verification_status: 'pending',
+              }, { onConflict: 'user_id' });
+            }
+          } catch {}
+        }
       } else {
         setError(result.error || "Signup failed");
       }
