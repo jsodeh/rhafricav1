@@ -41,6 +41,7 @@ interface PropertyFormData {
   furnishing_status: string;
   amenities: string[];
   images: File[];
+  uploaded_image_urls: string[];
   coordinates?: {
     lat: number;
     lng: number;
@@ -69,7 +70,8 @@ const AddProperty = () => {
     parking_spaces: '',
     furnishing_status: '',
     amenities: [],
-    images: []
+    images: [],
+    uploaded_image_urls: []
   });
 
   // Persist progress locally so agents don't lose work
@@ -84,7 +86,7 @@ const AddProperty = () => {
         setFormData((prev) => ({
           ...prev,
           ...saved.formData,
-          images: [], // Files cannot be restored from localStorage
+          images: [], // Files cannot be restored; keep uploaded urls
         }));
         if (saved.currentStep) setCurrentStep(saved.currentStep);
       }
@@ -160,9 +162,10 @@ const AddProperty = () => {
     }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length + formData.images.length > 10) {
+    const totalCount = files.length + formData.images.length + formData.uploaded_image_urls.length;
+    if (totalCount > 10) {
       toast({
         title: "Too many images",
         description: "You can upload a maximum of 10 images.",
@@ -170,13 +173,31 @@ const AddProperty = () => {
       });
       return;
     }
-    setFormData(prev => ({ ...prev, images: [...prev.images, ...files] }));
+    // Upload immediately and persist URLs
+    if (!user) {
+      toast({ title: 'Login required', description: 'Please log in to upload images', variant: 'destructive' });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const newUrls: string[] = [];
+      for (const file of files) {
+        const path = `drafts/${user.id}/${Date.now()}-${file.name}`;
+        const { error } = await supabase.storage.from('property-images').upload(path, file, { upsert: true });
+        if (error) { console.error('Upload error:', error); continue; }
+        const { data: pub } = supabase.storage.from('property-images').getPublicUrl(path);
+        newUrls.push(pub.publicUrl);
+      }
+      setFormData(prev => ({ ...prev, uploaded_image_urls: [...prev.uploaded_image_urls, ...newUrls] }));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const removeImage = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      uploaded_image_urls: prev.uploaded_image_urls.filter((_, i) => i !== index)
     }));
   };
 
@@ -252,25 +273,8 @@ const AddProperty = () => {
     setIsLoading(true);
 
     try {
-      // Upload images first
-      const imageUrls: string[] = [];
-      for (const image of formData.images) {
-        const fileName = `${Date.now()}-${image.name}`;
-        const { data, error } = await supabase.storage
-          .from('property-images')
-          .upload(fileName, image);
-
-        if (error) {
-          console.error('Image upload error:', error);
-          continue;
-        }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('property-images')
-          .getPublicUrl(fileName);
-
-        imageUrls.push(publicUrl);
-      }
+      // Use already uploaded image URLs (draft uploads)
+      const imageUrls: string[] = [...formData.uploaded_image_urls];
 
       // Create property record
       const propertyData = {
@@ -291,7 +295,7 @@ const AddProperty = () => {
         parking_spaces: formData.parking_spaces ? parseInt(formData.parking_spaces) : 0,
         furnishing_status: formData.furnishing_status || null,
         amenities: formData.amenities,
-        images: imageUrls,
+         images: imageUrls,
         owner_id: user.id,
         agent_id: agentId, // Set agent_id if user is a verified agent
         featured: false,
