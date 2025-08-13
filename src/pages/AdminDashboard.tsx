@@ -43,6 +43,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import EmptyState from "@/components/EmptyState";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useAdminOperations } from "@/hooks/useAdminOperations";
 
 
 const AdminDashboard = () => {
@@ -69,6 +71,10 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<any[]>([]); // TODO: type properly
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [usersError, setUsersError] = useState<string | null>(null);
+  const [userSearch, setUserSearch] = useState("");
+  const [userPage, setUserPage] = useState(1);
+  const [userPageSize, setUserPageSize] = useState(10);
+  const [userTotal, setUserTotal] = useState(0);
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [totalProperties, setTotalProperties] = useState<number | null>(null);
   const [monthlyRevenue, setMonthlyRevenue] = useState<number | null>(null);
@@ -89,21 +95,52 @@ const AdminDashboard = () => {
   const [loadingFinance, setLoadingFinance] = useState(false);
   const [financeError, setFinanceError] = useState<string | null>(null);
   const [financialData, setFinancialData] = useState<any[]>([]);
+  const { notifications } = useNotifications();
+  const { deleteUser, moderateProperty } = useAdminOperations();
 
   useEffect(() => {
     const fetchUsers = async () => {
       setLoadingUsers(true);
       setUsersError(null);
-      const { data, error } = await supabase.from('user_profiles').select('*').order('created_at', { ascending: false });
-      if (error) {
-        setUsersError(error.message);
-      } else {
-        setUsers(data || []);
+      try {
+        const offset = (userPage - 1) * userPageSize;
+        // Base query for data
+        let dataQuery = supabase
+          .from('user_profiles')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(offset, offset + userPageSize - 1);
+        // Filters
+        if (userFilter !== 'all') {
+          dataQuery = dataQuery.eq('account_type', userFilter);
+        }
+        if (userSearch.trim()) {
+          dataQuery = dataQuery.or(`full_name.ilike.%${userSearch}%,email.ilike.%${userSearch}%`);
+        }
+        // Count query
+        let countQuery = supabase
+          .from('user_profiles')
+          .select('*', { count: 'exact', head: true });
+        if (userFilter !== 'all') {
+          countQuery = countQuery.eq('account_type', userFilter);
+        }
+        if (userSearch.trim()) {
+          countQuery = countQuery.or(`full_name.ilike.%${userSearch}%,email.ilike.%${userSearch}%`);
+        }
+
+        const [dataRes, countRes] = await Promise.all([dataQuery, countQuery]);
+        if (dataRes.error) throw dataRes.error;
+        if (countRes.error) throw countRes.error;
+        setUsers(dataRes.data || []);
+        setUserTotal(countRes.count || 0);
+      } catch (e: any) {
+        setUsersError(e.message || 'Failed to load users');
+      } finally {
+        setLoadingUsers(false);
       }
-      setLoadingUsers(false);
     };
     fetchUsers();
-  }, []);
+  }, [userFilter, userSearch, userPage, userPageSize]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -137,13 +174,14 @@ const AdminDashboard = () => {
           .reduce((sum: number, p: any) => sum + (p.price || 0), 0);
         setMonthlyRevenue(thisMonthRevenue);
 
-        // Pending approvals (properties with verified = false)
-        const { count: pendingCount, error: pendingError } = await supabase
-          .from('properties')
-          .select('*', { count: 'exact', head: true })
-          .eq('verified', false);
-        if (pendingError) throw pendingError;
-        setPendingApprovals(pendingCount || 0);
+        // Pending = unverified properties + pending agents
+        const [propsRes, agentsRes] = await Promise.all([
+          supabase.from('properties').select('*', { count: 'exact', head: true }).eq('verified', false),
+          supabase.from('real_estate_agents').select('*', { count: 'exact', head: true }).eq('verification_status', 'pending')
+        ]);
+        if (propsRes.error) throw propsRes.error;
+        if (agentsRes.error) throw agentsRes.error;
+        setPendingApprovals((propsRes.count || 0) + (agentsRes.count || 0));
       } catch (err: any) {
         setStatsError(err.message || 'Failed to fetch stats');
       } finally {
@@ -316,10 +354,9 @@ const AdminDashboard = () => {
     fetchFinance();
   }, []);
 
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = users.filter((u) => {
     if (userFilter === "all") return true;
-    // Assuming user.status exists, otherwise adjust as needed
-    return user.status?.toLowerCase() === userFilter.toLowerCase();
+    return (u.account_type || '').toLowerCase() === userFilter.toLowerCase();
   });
 
   const filteredApprovals = approvals.filter((approval) => {
@@ -513,7 +550,7 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Recent Activity */}
+              {/* Recent Activity (from notifications) */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -522,34 +559,18 @@ const AdminDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">New user registration</p>
-                      <p className="text-xs text-gray-500">2 minutes ago</p>
+                  {notifications.slice(0, 8).map(n => (
+                    <div key={n.id} className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${n.type === 'error' ? 'bg-red-500' : n.type === 'warning' ? 'bg-yellow-500' : n.type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`}></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{n.title}</p>
+                        <p className="text-xs text-gray-500">{new Date(n.created_at).toLocaleString()}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Property listing approved</p>
-                      <p className="text-xs text-gray-500">15 minutes ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Support ticket created</p>
-                      <p className="text-xs text-gray-500">1 hour ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Payment processed</p>
-                      <p className="text-xs text-gray-500">2 hours ago</p>
-                    </div>
-                  </div>
+                  ))}
+                  {notifications.length === 0 && (
+                    <div className="text-sm text-gray-500">No recent activity yet</div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -575,6 +596,15 @@ const AdminDashboard = () => {
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search users..."
+                    value={userSearch}
+                    onChange={(e) => { setUserSearch(e.target.value); setUserPage(1); }}
+                    className="pl-9 w-64"
+                  />
+                </div>
               </div>
               <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
                 <DialogTrigger asChild>
@@ -681,13 +711,13 @@ const AdminDashboard = () => {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredUsers.map((user) => (
+                         {filteredUsers.map((user) => (
                           <tr key={user.id}>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
                                 <img
                                   className="h-10 w-10 rounded-full"
-                                  src={user.profile_image_url || '/placeholder.svg'}
+                                  src={user.avatar_url || '/placeholder.svg'}
                                   alt={user.email}
                                 />
                                 <div className="ml-4">
@@ -695,13 +725,13 @@ const AdminDashboard = () => {
                                     {user.email}
                                   </div>
                                   <div className="text-sm text-gray-500">
-                                    ID: {user.id}
+                                    ID: {user.user_id || user.id}
                                   </div>
                                 </div>
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {user.role || "N/A"}
+                              {(user.account_type || "N/A").toString()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <Badge className={getStatusColor("active")}>Active</Badge>
@@ -718,12 +748,15 @@ const AdminDashboard = () => {
                                 <Button variant="ghost" size="sm">
                                   <Eye className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="sm">
+                                 <Button variant="ghost" size="sm" onClick={() => { setEditingUser(user); setIsUserDialogOpen(true); }}>
                                   <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="sm">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                 <Button variant="ghost" size="sm" onClick={async () => {
+                                   const ok = await deleteUser(user.user_id || user.id);
+                                   if (ok) setUsers(prev => prev.filter(u => (u.user_id || u.id) !== (user.user_id || user.id)));
+                                 }}>
+                                   <Trash2 className="h-4 w-4" />
+                                 </Button>
                               </div>
                             </td>
                           </tr>
@@ -739,6 +772,17 @@ const AdminDashboard = () => {
                     className="py-12"
                   />
                 )}
+                {/* Pagination */}
+                <div className="flex items-center justify-between px-4 py-3 border-t text-sm text-gray-600">
+                  <div>
+                    Showing {Math.min((userPage - 1) * userPageSize + 1, Math.max(userTotal, 0))}
+                    -{Math.min(userPage * userPageSize, userTotal)} of {userTotal}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setUserPage(p => Math.max(1, p - 1))} disabled={userPage === 1 || loadingUsers}>Previous</Button>
+                    <Button variant="outline" size="sm" onClick={() => setUserPage(p => (p * userPageSize < userTotal ? p + 1 : p))} disabled={userPage * userPageSize >= userTotal || loadingUsers}>Next</Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
             </ErrorBoundary>
@@ -859,16 +903,31 @@ const AdminDashboard = () => {
                           {approval.status}
                         </Badge>
                       </div>
-                      <div className="flex gap-2 pt-2">
-                        <Button size="sm" className="flex-1">
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Approve
-                        </Button>
-                        <Button size="sm" variant="outline" className="flex-1">
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Reject
-                        </Button>
-                      </div>
+                        <div className="flex gap-2 pt-2">
+                          <Button size="sm" className="flex-1" onClick={async () => {
+                            try {
+                              const { error } = await supabase.from('properties').update({ verified: true }).eq('id', approval.id);
+                              if (error) throw error;
+                              setApprovals(prev => prev.filter(a => a.id !== approval.id));
+                            } catch (e:any) {
+                              setApprovalsError(e.message || 'Failed to approve');
+                            }
+                          }}>
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button size="sm" variant="outline" className="flex-1" onClick={async () => {
+                            try {
+                              const ok = await moderateProperty(approval.id, 'reject');
+                              if (ok) setApprovals(prev => prev.filter(a => a.id !== approval.id));
+                            } catch (e:any) {
+                              setApprovalsError(e.message || 'Failed to reject');
+                            }
+                          }}>
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
                     </CardContent>
                   </Card>
                 ))}

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -10,6 +11,7 @@ const AuthCallback = () => {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Verifying your account...');
+  const { notifyAdmins } = useNotifications();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
@@ -72,6 +74,10 @@ const AuthCallback = () => {
                 email: data.session.user.email || undefined,
                 full_name: data.session.user.user_metadata?.full_name || undefined,
               }, { onConflict: 'user_id' });
+              // Notify admins about a new signup
+              try {
+                await notifyAdmins('New user signup', `${data.session.user.email || 'A user'} just verified their account`, 'info', 'system', '/admin-dashboard', { userId: data.session.user.id });
+              } catch {}
             } catch (e) {
               console.warn('Failed to upsert user_profiles on signup confirmation:', e);
             }

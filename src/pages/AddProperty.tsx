@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/hooks/useNotifications';
 import MapboxLocationPicker from '@/components/MapboxLocationPicker';
 import { 
   MapPin, 
@@ -49,9 +50,10 @@ interface PropertyFormData {
 }
 
 const AddProperty = () => {
-  const { user } = useAuth();
+  const { user, resolvedRole, roleReady } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { notifyAdmins } = useNotifications();
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -244,34 +246,31 @@ const AddProperty = () => {
       return;
     }
 
-    // Check if user is an agent and if they're verified
-    let agentId = null;
-    if (user.accountType === 'agent') {
-      const { data: agentData, error: agentError } = await supabase
-        .from('real_estate_agents')
-        .select('id, verification_status')
-        .eq('user_id', user.id)
-        .single();
+    // Resolve agent context (non-blocking): if a verified agent profile exists, attach it; otherwise publish as owner
+    let agentId: string | null = null;
+    try {
+      if (resolvedRole === 'agent') {
+        const { data: agentData, error: agentErr } = await supabase
+          .from('real_estate_agents')
+          .select('id, verification_status')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-      if (agentError || !agentData) {
-        toast({
-          title: "Agent Profile Required",
-          description: "Please complete your agent profile first.",
-          variant: "destructive",
-        });
-        return;
+        if (agentErr) {
+          console.warn('Agent lookup failed (continuing as owner):', agentErr.message);
+        }
+
+        if (agentData?.verification_status === 'verified') {
+          agentId = agentData.id;
+        } else if (agentData && agentData.verification_status !== 'verified') {
+          toast({
+            title: 'Not verified yet',
+            description: 'We will publish this listing under your account. Once your agent profile is verified, future listings will be linked to it.',
+          });
+        }
       }
-
-      if (agentData.verification_status !== 'verified') {
-        toast({
-          title: "Verification Required",
-          description: "Your agent account must be verified before you can list properties. Please wait for admin approval.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      agentId = agentData.id;
+    } catch (e: any) {
+      console.warn('Agent detection failed, publishing as owner:', e?.message || e);
     }
 
     setIsLoading(true);
@@ -321,6 +320,18 @@ const AddProperty = () => {
         title: "Property Added Successfully",
         description: "Your property has been listed and is pending verification.",
       });
+
+      // Notify admins of new property submission
+      try {
+        await notifyAdmins(
+          'New property submitted',
+          `${formData.title || 'A property'} was submitted for review`,
+          'info',
+          'property',
+          `/properties/${data.id}`,
+          { propertyId: data.id, ownerId: user.id }
+        );
+      } catch {}
 
       // Clear draft after successful publish
       try { localStorage.removeItem(draftKey); } catch {}

@@ -44,7 +44,7 @@ export const useNotifications = () => {
     },
   });
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
+  const { user, resolvedRole } = useAuth();
   // Keep a copy of entire profile preferences JSON to avoid overwriting unrelated settings
   const [profilePreferences, setProfilePreferences] = useState<Record<string, any>>({});
 
@@ -257,6 +257,44 @@ export const useNotifications = () => {
     }
   }, [user, preferences]);
 
+  // Create notifications for all admins (admin + super_admin)
+  const notifyAdmins = useCallback(async (
+    title: string,
+    message: string,
+    type: Notification['type'] = 'info',
+    category: Notification['category'] = 'system',
+    actionUrl?: string,
+    metadata?: Record<string, any>
+  ) => {
+    try {
+      const { data: admins, error: adminsError } = await supabase
+        .from('user_profiles')
+        .select('user_id')
+        .in('account_type', ['admin', 'super_admin']);
+      if (adminsError) throw adminsError;
+      const rows = (admins || []).filter((a: any) => a.user_id).map((a: any) => ({
+        user_id: a.user_id,
+        title,
+        message,
+        type,
+        category,
+        read: false,
+        action_url: actionUrl,
+        metadata,
+      }));
+      if (rows.length === 0) return { success: true, inserted: 0 };
+      const { error: insertError } = await supabase.from('notifications').insert(rows);
+      if (insertError) {
+        console.warn('notifyAdmins failed:', insertError.message);
+        return { success: false, inserted: 0, error: insertError.message };
+      }
+      return { success: true, inserted: rows.length };
+    } catch (e: any) {
+      console.warn('notifyAdmins error:', e?.message || e);
+      return { success: false, inserted: 0, error: e?.message };
+    }
+  }, []);
+
   // Send push notification
   const sendPushNotification = useCallback(async (title: string, message: string) => {
     try {
@@ -377,6 +415,35 @@ export const useNotifications = () => {
     loadPreferencesFromProfile();
   }, [fetchNotifications, loadPreferencesFromProfile]);
 
+  // Admin activity listeners: new signups and agent submissions
+  useEffect(() => {
+    if (!user || resolvedRole !== 'admin') return;
+    const channel = supabase
+      .channel('admin-activity-listeners')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'user_profiles' },
+        (payload) => {
+          const row: any = payload.new;
+          const email = row?.email || 'New user';
+          createNotification('New user signup', `${email} just joined`, 'info', 'system', '/admin-dashboard', { userId: row?.user_id });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'real_estate_agents' },
+        (payload) => {
+          const row: any = payload.new;
+          createNotification('Agent profile submitted', 'A new agent profile is awaiting verification', 'info', 'system', '/admin-dashboard', { agentId: row?.id, userId: row?.user_id });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      try { supabase.removeChannel(channel); } catch {}
+    };
+  }, [user?.id, resolvedRole, createNotification]);
+
   return {
     notifications,
     unreadCount,
@@ -387,6 +454,7 @@ export const useNotifications = () => {
     markAllAsRead,
     deleteNotification,
     createNotification,
+    notifyAdmins,
     updatePreferences,
     sendPushNotification,
     sendEmailNotification,
