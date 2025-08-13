@@ -53,6 +53,7 @@ const AddProperty = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<PropertyFormData>({
     title: '',
@@ -178,7 +179,7 @@ const AddProperty = () => {
       toast({ title: 'Login required', description: 'Please log in to upload images', variant: 'destructive' });
       return;
     }
-    setIsLoading(true);
+    setIsUploadingImages(true);
     try {
       const newUrls: string[] = [];
       for (const file of files) {
@@ -189,8 +190,11 @@ const AddProperty = () => {
         newUrls.push(pub.publicUrl);
       }
       setFormData(prev => ({ ...prev, uploaded_image_urls: [...prev.uploaded_image_urls, ...newUrls] }));
+      toast({ title: 'Images uploaded', description: `${newUrls.length} image(s) added to your draft.` });
     } finally {
-      setIsLoading(false);
+      setIsUploadingImages(false);
+      // reset file input so the same file can be re-selected if needed
+      try { if (e.target) (e.target as HTMLInputElement).value = ''; } catch {}
     }
   };
 
@@ -660,12 +664,16 @@ const AddProperty = () => {
                 </label>
               </div>
 
-              {formData.images.length > 0 && (
+              {isUploadingImages && (
+                <div className="text-sm text-gray-600 mt-2">Uploading images...</div>
+              )}
+
+              {formData.uploaded_image_urls.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                  {formData.images.map((image, index) => (
-                    <div key={index} className="relative">
+                  {formData.uploaded_image_urls.map((url, index) => (
+                    <div key={url + index} className="relative">
                       <img
-                        src={URL.createObjectURL(image)}
+                        src={url}
                         alt={`Property ${index + 1}`}
                         className="w-full h-24 object-cover rounded-lg"
                       />
@@ -689,7 +697,7 @@ const AddProperty = () => {
                 <p><strong>Type:</strong> {formData.property_type} for {formData.listing_type}</p>
                 <p><strong>Price:</strong> ₦{formData.price ? parseInt(formData.price).toLocaleString() : '0'}</p>
                 <p><strong>Location:</strong> {formData.address}, {formData.city}, {formData.state}</p>
-                <p><strong>Images:</strong> {formData.images.length} uploaded</p>
+                <p><strong>Images:</strong> {formData.uploaded_image_urls.length} uploaded</p>
               </div>
             </div>
           </div>
@@ -762,7 +770,7 @@ const AddProperty = () => {
                   Next
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} disabled={isLoading}>
+                <Button onClick={handleSubmit} disabled={isLoading || isUploadingImages}>
                   {isLoading ? 'Publishing...' : 'Publish Property'}
                 </Button>
               )}
