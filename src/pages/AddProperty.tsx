@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -71,6 +71,34 @@ const AddProperty = () => {
     amenities: [],
     images: []
   });
+
+  // Persist progress locally so agents don't lose work
+  const draftKey = user ? `property_draft_${user.id}` : 'property_draft_anon';
+
+  // Load draft on mount/user change
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        setFormData((prev) => ({
+          ...prev,
+          ...saved.formData,
+          images: [], // Files cannot be restored from localStorage
+        }));
+        if (saved.currentStep) setCurrentStep(saved.currentStep);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Save draft whenever formData/step change (except images)
+  useEffect(() => {
+    try {
+      const { images, ...rest } = formData;
+      localStorage.setItem(draftKey, JSON.stringify({ formData: rest, currentStep }));
+    } catch {}
+  }, [formData, currentStep, draftKey]);
 
   const propertyTypes = [
     'apartment',
@@ -286,6 +314,9 @@ const AddProperty = () => {
         description: "Your property has been listed and is pending verification.",
       });
 
+      // Clear draft after successful publish
+      try { localStorage.removeItem(draftKey); } catch {}
+
       navigate(`/properties/${data.id}`);
 
     } catch (error: any) {
@@ -413,7 +444,7 @@ const AddProperty = () => {
               </div>
             </div>
 
-            {/* Mapbox Location Picker */}
+            {/* Map picker (optional) */}
             <MapboxLocationPicker
               onLocationSelect={(location) => {
                 setFormData(prev => ({
@@ -472,6 +503,46 @@ const AddProperty = () => {
                       <option key={state} value={state}>{state}</option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Latitude and Longitude inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="latitude" className="text-base font-medium">Latitude</Label>
+                  <Input
+                    id="latitude"
+                    type="number"
+                    step="any"
+                    value={formData.coordinates?.lat ?? ''}
+                    onChange={(e) => {
+                      const lat = e.target.value === '' ? undefined : Number(e.target.value);
+                      setFormData(prev => ({
+                        ...prev,
+                        coordinates: { lat: lat as any, lng: prev.coordinates?.lng ?? 0 }
+                      }));
+                    }}
+                    placeholder="e.g., 6.4531"
+                    className="mt-2"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="longitude" className="text-base font-medium">Longitude</Label>
+                  <Input
+                    id="longitude"
+                    type="number"
+                    step="any"
+                    value={formData.coordinates?.lng ?? ''}
+                    onChange={(e) => {
+                      const lng = e.target.value === '' ? undefined : Number(e.target.value);
+                      setFormData(prev => ({
+                        ...prev,
+                        coordinates: { lat: prev.coordinates?.lat ?? 0, lng: lng as any }
+                      }));
+                    }}
+                    placeholder="e.g., 3.3958"
+                    className="mt-2"
+                  />
                 </div>
               </div>
             </div>
