@@ -201,31 +201,26 @@ const Index = () => {
   useRouteAnnouncement("Real Estate Hotspot - Find Your Perfect Property");
 
   // Fetch real data from Supabase
-  const { data: featuredProperties, isLoading: propertiesLoading, error: propertiesError } = useProperties({ 
-    searchTerm: '', 
-    city: '' 
+  const { properties: featuredProperties, isLoading: propertiesLoading, error: propertiesError } = useProperties({ 
+    // no filter = latest properties
   });
   
   // Fetch properties by location
-  const { data: lagosProperties } = useProperties({ 
-    searchTerm: '', 
+  const { properties: lagosProperties } = useProperties({ 
     city: 'Lagos' 
   });
   
-  const { data: abujaProperties } = useProperties({ 
-    searchTerm: '', 
+  const { properties: abujaProperties } = useProperties({ 
     city: 'Abuja' 
   });
   
   // Fetch properties by type
-  const { data: apartmentProperties } = useProperties({ 
-    searchTerm: '', 
-    propertyType: 'apartment' 
+  const { properties: apartmentProperties } = useProperties({ 
+    property_type: 'apartment' as any
   });
   
-  const { data: houseProperties } = useProperties({ 
-    searchTerm: '', 
-    propertyType: 'house' 
+  const { properties: houseProperties } = useProperties({ 
+    property_type: 'house' as any
   });
   
   const { data: featuredAgents, isLoading: agentsLoading, error: agentsError } = useFeaturedAgents(6);
