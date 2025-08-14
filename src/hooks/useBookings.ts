@@ -173,7 +173,7 @@ export const useBookings = () => {
 
       if (error) throw error;
 
-      setBookings(prev =>
+      setBookings(prev => 
         prev.map(b => (b.id === bookingId ? { ...b, status: 'confirmed' } as Booking : b))
       );
     } catch (err) {
@@ -196,7 +196,7 @@ export const useBookings = () => {
 
       if (error) throw error;
 
-      setBookings(prev =>
+      setBookings(prev => 
         prev.map(b => (b.id === bookingId ? { ...b, status: 'cancelled' } as Booking : b))
       );
     } catch (err) {
@@ -219,7 +219,7 @@ export const useBookings = () => {
 
       if (error) throw error;
 
-      setBookings(prev =>
+      setBookings(prev => 
         prev.map(b => (b.id === bookingId ? { ...b, status: 'completed' } as Booking : b))
       );
     } catch (err) {

@@ -507,7 +507,7 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
             <div className="space-y-4">
               {/* Step 1: Basic info */}
               {step === 1 && (
-                <div className="space-y-3">
+                  <div className="space-y-3">
                   <h3 className="font-medium text-sm">Step 1: Basic details</h3>
                   <TaskItem key={'basic_info'} task={tasks.find(t=>t.id==='basic_info')!} />
                   <div className="flex justify-end">

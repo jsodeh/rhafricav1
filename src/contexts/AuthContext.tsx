@@ -96,21 +96,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           accountType: profile.account_type || prev.accountType,
         } : prev);
         setResolvedRole(normalizeAccountType(profile.account_type));
-        // If DB still shows default 'buyer' but metadata claims stronger role, self-heal once
-        const meta = normalizeAccountType(user?.accountType);
-        if ((profile.account_type === 'buyer') && meta !== 'buyer') {
-          try {
+        // Self-heal: if DB shows 'buyer' but auth metadata indicates a stronger role, update once
+        try {
+          const { data: authUserData } = await supabase.auth.getUser();
+          const authMetaType = authUserData?.user?.user_metadata?.accountType as string | undefined;
+          const meta = normalizeAccountType(authMetaType);
+          if ((profile.account_type === 'buyer') && meta !== 'buyer') {
             await supabase.from('user_profiles').update({ account_type: meta }).eq('user_id', userId);
             setResolvedRole(meta);
-          } catch {}
-        }
+          }
+        } catch {}
       } else {
         // No profile row yet; fall back to auth metadata
-        setResolvedRole(prev => normalizeAccountType(user?.accountType) || prev);
+        try {
+          const { data: authUserData } = await supabase.auth.getUser();
+          const authMetaType = authUserData?.user?.user_metadata?.accountType as string | undefined;
+          setResolvedRole(prev => normalizeAccountType(authMetaType) || prev);
+        } catch {
+          setResolvedRole(prev => normalizeAccountType(user?.accountType) || prev);
+        }
       }
     } catch (err) {
       console.warn('refreshUserFromProfile failed:', err);
-      setResolvedRole(prev => normalizeAccountType(user?.accountType) || prev);
+      try {
+        const { data: authUserData } = await supabase.auth.getUser();
+        const authMetaType = authUserData?.user?.user_metadata?.accountType as string | undefined;
+        setResolvedRole(prev => normalizeAccountType(authMetaType) || prev);
+      } catch {
+        setResolvedRole(prev => normalizeAccountType(user?.accountType) || prev);
+      }
     }
     setRoleReady(true);
   }, []);
@@ -319,6 +333,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return { success: true };
         } else if (data.session) {
           console.log('User created and signed in immediately (email confirmation disabled)');
+          // Persist profile now since we have a session
+          try {
+            const normalized = normalizeAccountType(accountType);
+            await supabase.from('user_profiles').upsert({
+              user_id: data.user.id,
+              email: data.user.email || undefined,
+              full_name: `${userData.firstName} ${userData.lastName}`,
+              phone: userData.phone,
+              account_type: normalized,
+            }, { onConflict: 'user_id' });
+            if (normalized === 'agent') {
+              try {
+                await supabase.from('real_estate_agents').upsert({
+                  user_id: data.user.id,
+                  phone: userData.phone || null,
+                  verification_status: 'pending' as any,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                }, { onConflict: 'user_id' });
+              } catch {}
+            }
+          } catch (e) {
+            console.warn('Immediate signup profile upsert failed:', e);
+          }
           return { success: true };
         }
         

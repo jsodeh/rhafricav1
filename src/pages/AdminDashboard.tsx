@@ -136,7 +136,7 @@ const AdminDashboard = () => {
       } catch (e: any) {
         setUsersError(e.message || 'Failed to load users');
       } finally {
-        setLoadingUsers(false);
+      setLoadingUsers(false);
       }
     };
     fetchUsers();
@@ -562,11 +562,11 @@ const AdminDashboard = () => {
                   {notifications.slice(0, 8).map(n => (
                     <div key={n.id} className="flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full ${n.type === 'error' ? 'bg-red-500' : n.type === 'warning' ? 'bg-yellow-500' : n.type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`}></div>
-                      <div className="flex-1">
+                    <div className="flex-1">
                         <p className="text-sm font-medium">{n.title}</p>
                         <p className="text-xs text-gray-500">{new Date(n.created_at).toLocaleString()}</p>
-                      </div>
                     </div>
+                  </div>
                   ))}
                   {notifications.length === 0 && (
                     <div className="text-sm text-gray-500">No recent activity yet</div>
@@ -604,14 +604,14 @@ const AdminDashboard = () => {
                     onChange={(e) => { setUserSearch(e.target.value); setUserPage(1); }}
                     className="pl-9 w-64"
                   />
-                </div>
+              </div>
               </div>
               <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="flex items-center gap-2">
+              <Button className="flex items-center gap-2">
                 <Download className="h-4 w-4" />
                     New User
-                  </Button>
+              </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
@@ -711,7 +711,7 @@ const AdminDashboard = () => {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                         {filteredUsers.map((user) => (
+                        {filteredUsers.map((user) => (
                           <tr key={user.id}>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
@@ -755,8 +755,8 @@ const AdminDashboard = () => {
                                    const ok = await deleteUser(user.user_id || user.id);
                                    if (ok) setUsers(prev => prev.filter(u => (u.user_id || u.id) !== (user.user_id || user.id)));
                                  }}>
-                                   <Trash2 className="h-4 w-4" />
-                                 </Button>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
                             </td>
                           </tr>
@@ -903,7 +903,7 @@ const AdminDashboard = () => {
                           {approval.status}
                         </Badge>
                       </div>
-                        <div className="flex gap-2 pt-2">
+                      <div className="flex gap-2 pt-2">
                           <Button size="sm" className="flex-1" onClick={async () => {
                             try {
                               const { error } = await supabase.from('properties').update({ verified: true }).eq('id', approval.id);
@@ -924,9 +924,9 @@ const AdminDashboard = () => {
                               setApprovalsError(e.message || 'Failed to approve');
                             }
                           }}>
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Approve
-                          </Button>
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Approve
+                        </Button>
                           <Button size="sm" variant="outline" className="flex-1" onClick={async () => {
                             try {
                               const ok = await moderateProperty(approval.id, 'reject');
@@ -944,10 +944,10 @@ const AdminDashboard = () => {
                               setApprovalsError(e.message || 'Failed to reject');
                             }
                           }}>
-                            <XCircle className="h-4 w-4 mr-1" />
-                            Reject
-                          </Button>
-                        </div>
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Reject
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

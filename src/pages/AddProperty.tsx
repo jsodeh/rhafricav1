@@ -251,9 +251,9 @@ const AddProperty = () => {
     try {
       if (resolvedRole === 'agent') {
         const { data: agentData, error: agentErr } = await supabase
-          .from('real_estate_agents')
-          .select('id, verification_status')
-          .eq('user_id', user.id)
+        .from('real_estate_agents')
+        .select('id, verification_status')
+        .eq('user_id', user.id)
           .maybeSingle();
 
         if (agentErr) {
@@ -263,10 +263,10 @@ const AddProperty = () => {
         if (agentData?.verification_status === 'verified') {
           agentId = agentData.id;
         } else if (agentData && agentData.verification_status !== 'verified') {
-          toast({
+        toast({
             title: 'Not verified yet',
             description: 'We will publish this listing under your account. Once your agent profile is verified, future listings will be linked to it.',
-          });
+        });
         }
       }
     } catch (e: any) {
@@ -298,7 +298,7 @@ const AddProperty = () => {
         parking_spaces: formData.parking_spaces ? parseInt(formData.parking_spaces) : 0,
         furnishing_status: formData.furnishing_status || null,
         amenities: formData.amenities,
-         images: imageUrls,
+        images: imageUrls,
         owner_id: user.id,
         agent_id: agentId, // Set agent_id if user is a verified agent
         featured: false,

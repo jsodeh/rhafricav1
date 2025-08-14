@@ -330,7 +330,7 @@ const AgentDashboard = () => {
                     </Button>
                   </Link>
                 </CardHeader>
-                 <CardContent className="space-y-4">
+                <CardContent className="space-y-4">
                   {filteredListings.slice(0, 3).map((listing: any) => (
                     <div
                       key={listing.id}
@@ -397,7 +397,7 @@ const AgentDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                   <Button
+                  <Button
                     variant="outline"
                     className="w-full h-16 flex flex-col gap-2"
                     onClick={() => (window.location.href = '/properties/add')}
@@ -719,11 +719,11 @@ const AgentDashboard = () => {
           <TabsContent value="profile" className="space-y-6">
             <h2 className="text-2xl font-semibold">Agent Profile</h2>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Professional Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Professional Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
@@ -741,28 +741,28 @@ const AgentDashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Agency Name</label>
                     <input type="text" value={agencyName} onChange={(e) => setAgencyName(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" />
                   </div>
-                  <div>
+                    <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">License Number</label>
                     <input type="text" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" />
-                  </div>
+                    </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Years of Experience</label>
                     <input type="number" min="0" value={yearsExperience} onChange={(e) => setYearsExperience(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" />
                   </div>
                 </div>
-                <div>
+                    <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
                   <textarea value={bio} onChange={(e) => setBio(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 min-h-[100px]" />
-                </div>
+                    </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Specializations (comma separated)</label>
                   <input type="text" value={specializations} onChange={(e) => setSpecializations(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Luxury, Residential, Investment" />
-                </div>
+                  </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                    <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Instagram</label>
                     <input type="text" value={instagram} onChange={(e) => setInstagram(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" />
-                  </div>
+                    </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Facebook</label>
                     <input type="text" value={facebook} onChange={(e) => setFacebook(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" />
@@ -783,10 +783,10 @@ const AgentDashboard = () => {
                   </Button>
                   <Button variant="outline" onClick={requestVerification} disabled={agentRow?.verification_status === 'pending' || agentSaving}>
                     {agentRow?.verification_status === 'verified' ? 'Verified' : agentRow?.verification_status === 'pending' ? 'Pending Verification' : 'Request Verification'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
           </TabsContent>
         </Tabs>
       </div>
