@@ -48,7 +48,7 @@ const Dashboard = () => {
     }
   }, [roleReady, resolvedRole, navigate]);
 
-  // Show profile setup for new users or incomplete profiles
+  // Show profile setup for clearly incomplete basic profiles only
   useEffect(() => {
     if (user && !profileLoading) {
       console.log('Dashboard: Checking profile setup needs', {
@@ -58,12 +58,14 @@ const Dashboard = () => {
         accountType: user.accountType
       });
 
-      // Check if user needs to complete profile setup
-      const needsSetup = !profile || 
-                        !profile.full_name || 
-                        !profile.phone || 
-                        !user.emailVerified ||
-                         (resolvedRole === 'agent' && !((profile as any)?.verification_status));
+      // Only auto-open when user-editable basics are missing.
+      // Do NOT gate on agent verification (which may be pending admin review),
+      // and do not rely on non-existent fields on user_profiles.
+      const needsSetup = !profile ||
+                         !profile.full_name ||
+                         !profile.phone ||
+                         !profile.location ||
+                         !profile.avatar_url;
       
       console.log('Dashboard: Needs setup?', needsSetup);
       
