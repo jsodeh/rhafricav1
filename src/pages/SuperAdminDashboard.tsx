@@ -189,6 +189,12 @@ const SuperAdminDashboard = () => {
         // Refresh agents list
         const updatedAgents = await fetchPendingAgents();
         setAgents(updatedAgents);
+
+        // Also refresh platform stats so pending counts update immediately
+        try {
+          const updatedStats = await fetchPlatformStats();
+          setStats(updatedStats);
+        } catch {}
       }
     } catch (error) {
       console.error('Error updating agent verification:', error);
