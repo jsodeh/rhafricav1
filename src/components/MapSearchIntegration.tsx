@@ -94,7 +94,8 @@ const MapSearchIntegration: React.FC<MapSearchIntegrationProps> = ({
 
     // Convert prices to numbers
     const prices = props.map(p => {
-      const numStr = p.price.replace(/[₦,]/g, "");
+      const str = typeof p.price === 'number' ? String(p.price) : String(p.price || '0');
+      const numStr = str.replace(/[₦,]/g, "");
       if (numStr.includes("million")) {
         return parseFloat(numStr.replace("million", "")) * 1000000;
       }
@@ -143,7 +144,10 @@ const MapSearchIntegration: React.FC<MapSearchIntegrationProps> = ({
         position.lng <= bounds.getEast();
 
       // Apply price filter
-      const priceNumber = parseFloat(property.price.replace(/[₦,]/g, "")) || 0;
+      const priceNumber = (() => {
+        const str = typeof property.price === 'number' ? String(property.price) : String(property.price || '0');
+        return parseFloat(str.replace(/[₦,]/g, "")) || 0;
+      })();
       const withinPriceRange = 
         priceNumber >= mapSettings.priceRange[0] &&
         priceNumber <= mapSettings.priceRange[1];

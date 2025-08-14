@@ -120,16 +120,22 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
     return lagosPositions[index % lagosPositions.length];
   };
 
-  // Get property price as number for heatmap
-  const getPropertyPriceNumber = (price: string): number => {
-    const numStr = price.replace(/[₦,]/g, "");
-    if (numStr.includes("million")) {
-      return parseFloat(numStr.replace("million", "")) * 1000000;
+  // Get property price as number for heatmap (supports number or string inputs)
+  const getPropertyPriceNumber = (price: any): number => {
+    if (price === null || price === undefined) return 0;
+    if (typeof price === 'number') return price;
+    const raw = String(price);
+    const cleaned = raw.replace(/[₦,\s]/g, '').toLowerCase();
+    if (cleaned.includes('million')) {
+      const base = parseFloat(cleaned.replace('million', ''));
+      return isNaN(base) ? 0 : base * 1_000_000;
     }
-    if (numStr.includes("billion")) {
-      return parseFloat(numStr.replace("billion", "")) * 1000000000;
+    if (cleaned.includes('billion')) {
+      const base = parseFloat(cleaned.replace('billion', ''));
+      return isNaN(base) ? 0 : base * 1_000_000_000;
     }
-    return parseFloat(numStr) || 0;
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? 0 : n;
   };
 
   // Get user's current location

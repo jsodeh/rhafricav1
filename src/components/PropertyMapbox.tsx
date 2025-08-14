@@ -161,10 +161,13 @@ const PropertyMapbox: React.FC<PropertyMapProps> = ({
         transition: transform 0.2s;
       `;
 
-      const price = property.price
-        .replace("₦", "")
-        .replace(",000,000", "M")
-        .replace(",000", "K");
+      const price = (() => {
+        const raw = typeof property.price === 'number' ? String(property.price) : String(property.price || '');
+        return raw
+          .replace("₦", "")
+          .replace(",000,000", "M")
+          .replace(",000", "K");
+      })();
       
       el.textContent = price;
 
@@ -194,8 +197,9 @@ const PropertyMapbox: React.FC<PropertyMapProps> = ({
     });
   };
 
-  const formatPrice = (price: string) => {
-    return price
+  const formatPrice = (price: any) => {
+    const raw = typeof price === 'number' ? String(price) : String(price || '');
+    return raw
       .replace("₦", "")
       .replace(",000,000", "M")
       .replace(",000", "K");
