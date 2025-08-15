@@ -104,7 +104,7 @@ const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
     if (existingConversation) {
       fetchMessages(existingConversation.id);
     } else {
-      const conversationId = await createConversation([user.id, agent.id], propertyId);
+      const conversationId = await createConversation(agent.id, propertyId);
       if (conversationId) {
         fetchMessages(conversationId);
       }
@@ -215,17 +215,17 @@ const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
               {selectedAgent && !showAgentList ? (
                 <>
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={selectedAgent.avatar} alt={selectedAgent.name} />
-                    <AvatarFallback>{selectedAgent.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    <AvatarImage src={selectedAgent.avatar} alt={selectedAgent?.name || "Agent"} />
+                    <AvatarFallback>{selectedAgent?.name?.split(' ').map(n => n[0]).join('') || "A"}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-medium text-sm">{selectedAgent.name}</div>
+                    <div className="font-medium text-sm">{selectedAgent?.name || "Agent"}</div>
                     <div className="flex items-center space-x-1 text-xs text-blue-100">
                       <div className={cn(
                         "w-2 h-2 rounded-full",
-                        selectedAgent.isOnline ? "bg-green-400" : "bg-gray-400"
+                        selectedAgent.is_online ? "bg-green-400" : "bg-gray-400"
                       )} />
-                      <span>{selectedAgent.isOnline ? "Online" : "Offline"}</span>
+                      <span>{selectedAgent.is_online ? "Online" : "Offline"}</span>
                     </div>
                   </div>
                 </>
@@ -283,18 +283,18 @@ const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
                       onClick={() => handleStartConversation(agent)}
                     >
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={agent.avatar} alt={agent.name} />
-                        <AvatarFallback>{agent.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        <AvatarImage src={agent.avatar} alt={agent?.name || "Agent"} />
+                        <AvatarFallback>{agent?.name?.split(' ').map(n => n[0]).join('') || "A"}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <div className="font-medium text-sm">{agent.name}</div>
+                        <div className="font-medium text-sm">{agent?.name || "Agent"}</div>
                         <div className="text-xs text-gray-500">{agent.role}</div>
                         <div className="flex items-center space-x-1 text-xs text-gray-400">
                           <div className={cn(
                             "w-2 h-2 rounded-full",
-                            agent.isOnline ? "bg-green-400" : "bg-gray-400"
+                            agent.is_online ? "bg-green-400" : "bg-gray-400"
                           )} />
-                          <span>{agent.responseTime}</span>
+                          <span>{agent.response_time}</span>
                         </div>
                       </div>
                     </div>
@@ -393,7 +393,7 @@ const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
                     </Button>
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {selectedAgent?.isOnline ? (
+                    {selectedAgent?.is_online ? (
                       <span className="flex items-center">
                         <div className="w-2 h-2 bg-green-400 rounded-full mr-1" />
                         {selectedAgent.name} is online

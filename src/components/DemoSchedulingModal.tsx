@@ -348,7 +348,7 @@ const DemoSchedulingModal: React.FC<DemoSchedulingModalProps> = ({
             type="date"
             value={formData.preferredDate}
             onChange={(e) => setFormData(prev => ({ ...prev, preferredDate: e.target.value }))}
-            min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+            min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()?.split('T')[0] || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
             className="mt-2"
           />
         </div>
@@ -375,7 +375,7 @@ const DemoSchedulingModal: React.FC<DemoSchedulingModalProps> = ({
             type="date"
             value={formData.alternativeDate}
             onChange={(e) => setFormData(prev => ({ ...prev, alternativeDate: e.target.value }))}
-            min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+            min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()?.split('T')[0] || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
             className="mt-2"
           />
         </div>

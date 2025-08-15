@@ -319,7 +319,7 @@ export const useContactForms = () => {
 
       const mapped: ContactSubmission[] = (data || []).map((row: any) => ({
         id: row.id,
-        name: row.name || user.email?.split('@')[0] || 'User',
+        name: row.name || user?.email?.split('@')[0] || 'User',
         email: row.email || user.email || '',
         phone: row.phone || '',
         subject: row.subject || row.case_type || 'Inquiry',

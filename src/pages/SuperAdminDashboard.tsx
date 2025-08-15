@@ -207,7 +207,7 @@ const SuperAdminDashboard = () => {
       
       if (data) {
         const csv = convertToCSV(data);
-        downloadCSV(csv, `${type}_export_${new Date().toISOString().split('T')[0]}.csv`);
+        downloadCSV(csv, `${type}_export_${new Date().toISOString()?.split('T')[0] || new Date().toISOString().slice(0, 10)}.csv`);
       }
     } catch (error) {
       console.error('Error exporting data:', error);

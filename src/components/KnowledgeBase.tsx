@@ -390,7 +390,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ className = "" }) => {
         <ScrollArea className="flex-1 p-6">
           <div className="max-w-4xl mx-auto">
             <div className="prose prose-gray max-w-none">
-              {selectedArticle.content.split('\n').map((paragraph, index) => {
+              {selectedArticle?.content?.split('\n').map((paragraph, index) => {
                 if (paragraph.startsWith('## ')) {
                   return (
                     <h2 key={index} className="text-xl font-semibold text-gray-900 mt-8 mb-4">

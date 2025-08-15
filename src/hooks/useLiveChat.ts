@@ -275,7 +275,7 @@ export const useLiveChat = () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         metadata: {
-          customer_name: user.email?.split('@')[0] || "Customer",
+          customer_name: user?.email?.split('@')[0] || "Customer",
           customer_email: user.email,
           agent_assigned: agentId,
           tags: ['new-conversation'],

@@ -339,7 +339,7 @@ const ChatManagement: React.FC<ChatManagementProps> = ({
                             <Avatar className="h-10 w-10">
                               <AvatarImage src={conversation.customerAvatar} alt={conversation.customerName} />
                               <AvatarFallback>
-                                {conversation.customerName.split(' ').map(n => n[0]).join('')}
+                                {conversation.customerName?.split(' ').map(n => n[0]).join('') || "C"}
                               </AvatarFallback>
                             </Avatar>
                             
@@ -402,7 +402,7 @@ const ChatManagement: React.FC<ChatManagementProps> = ({
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={selectedConversation.customerAvatar} alt={selectedConversation.customerName} />
                     <AvatarFallback>
-                      {selectedConversation.customerName.split(' ').map(n => n[0]).join('')}
+                      {selectedConversation.customerName?.split(' ').map(n => n[0]).join('') || "C"}
                     </AvatarFallback>
                   </Avatar>
                   <div>

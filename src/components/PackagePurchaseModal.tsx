@@ -113,7 +113,7 @@ const PackagePurchaseModal: React.FC<PackagePurchaseModalProps> = ({
     phone: "",
     location: "",
     billingCycle: "monthly",
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: new Date().toISOString()?.split('T')[0] || new Date().toISOString().slice(0, 10),
     additionalServices: [],
     specialRequirements: "",
     agreedToTerms: false,
@@ -352,7 +352,7 @@ const PackagePurchaseModal: React.FC<PackagePurchaseModalProps> = ({
           type="date"
           value={formData.startDate}
           onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-          min={new Date().toISOString().split('T')[0]}
+          min={new Date().toISOString()?.split('T')[0] || new Date().toISOString().slice(0, 10)}
           className="mt-2"
         />
       </div>

@@ -140,14 +140,14 @@ const MapboxLocationPicker: React.FC<MapboxLocationPickerProps> = ({
 
     // If city not found in context, try to extract from place_name
     if (!city && placeName) {
-      const parts = placeName.split(',');
+      const parts = placeName?.split(',') || [];
       if (parts.length > 1) {
         city = parts[1].trim();
       }
     }
 
     return {
-      address: feature.text || placeName.split(',')[0] || '',
+      address: feature.text || placeName?.split(',')[0] || '',
       city: city || 'Lagos', // Default to Lagos if not found
       state: state || 'Lagos', // Default to Lagos State if not found
       coordinates

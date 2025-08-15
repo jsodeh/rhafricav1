@@ -460,7 +460,7 @@ const ProfileSetupProgress: React.FC<ProfileSetupProgressProps> = ({ isOpen, onC
                         setUploading(true);
                         let publicUrl = editAvatarUrl;
                         if (avatarFile) {
-                          const fileExt = avatarFile.name.split('.').pop();
+                          const fileExt = avatarFile?.name?.split('.').pop();
                           const fileName = `${user?.id}/avatar_${Date.now()}.${fileExt}`;
                           const { error: uploadError } = await supabase.storage.from('profile-images').upload(fileName, avatarFile, {
                             upsert: true,

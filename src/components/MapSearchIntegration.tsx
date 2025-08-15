@@ -42,6 +42,8 @@ interface Property {
   };
   daysOnMarket: number;
   pricePerSqft: string;
+  city?: string; // Added for popular areas calculation
+  address?: string; // Added for popular areas calculation
 }
 
 interface MapSearchIntegrationProps {
@@ -111,8 +113,11 @@ const MapSearchIntegration: React.FC<MapSearchIntegrationProps> = ({
 
     // Calculate popular areas
     const areaCount = props.reduce((acc, prop) => {
-      const area = prop.location.split(",")[0].trim();
-      acc[area] = (acc[area] || 0) + 1;
+      // Use city if available, fallback to address, or skip if neither exists
+      const area = prop.city || prop.address?.split(",")[0] || 'Unknown';
+      if (area && area !== 'Unknown') {
+        acc[area] = (acc[area] || 0) + 1;
+      }
       return acc;
     }, {} as Record<string, number>);
 

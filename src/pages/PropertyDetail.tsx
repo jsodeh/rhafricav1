@@ -255,23 +255,25 @@ const PropertyDetail = () => {
   ];
 
   return (
-    <PropertySEO property={{
-      id: id || '1',
-      title: property.title,
-      description: property.description || '',
-      price: formatPrice(property.price),
-      location: `${property.city}, ${property.state}`,
-      type: property.property_type,
-      bedrooms: property.bedrooms || 0,
-      bathrooms: property.bathrooms || 0,
-      area: property.area_sqm ? `${property.area_sqm} sqm` : 'N/A',
-      images: allImages,
-      agent: {
-        name: agent.name,
-        phone: agent.phone || '',
-        email: agent.email || ''
-      }
-    }}>
+    <PropertySEO
+      property={{
+        id: id || '1',
+        title: property.title || "Property Details",
+        description: property.description || "View property details",
+        price: Number(property.price) || 0,
+        location: property.location || `${property.city}, ${property.state}`,
+        type: property.property_type,
+        bedrooms: Number(property.bedrooms) || 0,
+        bathrooms: Number(property.bathrooms) || 0,
+        area: Number(property.area_sqm) || 0,
+        images: allImages,
+        agent: {
+          name: agent.name || "Agent",
+          phone: agent.phone || '',
+          email: agent.email || ''
+        }
+      }}
+    >
       <BreadcrumbSEO breadcrumbs={breadcrumbs} />
       <div className="page-container bg-white">
         <StickyNavigation isScrolled={true} showSearchInNav={false} />
@@ -583,13 +585,15 @@ const PropertyDetail = () => {
                       <div className="text-sm text-gray-600 mb-3">Listed by</div>
                       <div className="flex items-center space-x-3 mb-4">
                         <img
-                          src={agent.profile_image_url || "/placeholder.svg"}
-                          alt={agent.name}
+                          src={agent?.profile_image_url || "/default-avatar.png"}
+                          alt={agent?.name || "Agent"}
                           className="w-12 h-12 rounded-full object-cover"
                         />
                         <div className="flex-1">
                           <div className="font-semibold hover:text-blue-700 transition-colors">
-                            {agent.name}
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {agent?.name || "Agent"}
+                            </h3>
                           </div>
                           <div className="text-sm text-gray-600">
                             {agent.agency_name || "Real Estate Agent"}
@@ -602,7 +606,10 @@ const PropertyDetail = () => {
                           className="w-full"
                           onClick={() => setShowContactModal(true)}
                         >
-                          Contact {agent.name.split(" ")[0]}
+                          <span className="text-sm text-gray-500">Contact</span>
+                          <span className="text-sm font-medium text-gray-900">
+                            Contact {agent?.name?.split(" ")[0] || "Agent"}
+                          </span>
                         </Button>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
@@ -653,7 +660,7 @@ const PropertyDetail = () => {
             address: property.address,
             price: property.price,
             agent_id: agent.id,
-            agent_name: agent.name,
+            agent_name: agent?.name || "Agent",
             agent_phone: agent.phone || '',
             agent_email: agent.email || '',
           }}
@@ -665,12 +672,12 @@ const PropertyDetail = () => {
           onClose={() => setShowContactModal(false)}
           type="agent"
           recipientId={agent.id}
-          recipientName={agent.name}
+          recipientName={agent?.name || "Agent"}
           recipientRole="agent"
           propertyId={property.id.toString()}
           propertyTitle={`${property.bedrooms} bed ${property.bathrooms} bath ${property.property_type} - ${property.city}`}
           title="Contact Agent"
-          description={`Send a message to ${agent.name} about this property`}
+          description={`Send a message to ${agent?.name || "Agent"} about this property`}
           defaultSubject={`Inquiry about ${property.bedrooms} bed ${property.bathrooms} bath ${property.property_type} - ${formatPrice(property.price)}`}
           onSubmit={submitContactForm}
         />
@@ -681,7 +688,7 @@ const PropertyDetail = () => {
           onClose={() => setShowViewingModal(false)}
           type="booking"
           recipientId={agent.id}
-          recipientName={agent.name}
+          recipientName={agent?.name || "Agent"}
           recipientRole="agent"
           propertyId={property.id.toString()}
           propertyTitle={`${property.bedrooms} bed ${property.bathrooms} bath ${property.property_type} - ${property.city}`}

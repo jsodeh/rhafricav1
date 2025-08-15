@@ -133,7 +133,7 @@ export const AccessibleButton = forwardRef<HTMLButtonElement, AccessibleButtonPr
         const hasModifier = e.ctrlKey || e.metaKey || e.altKey;
         
         shortcuts.forEach(shortcut => {
-          const parts = shortcut.toLowerCase().split('+');
+          const parts = shortcut?.toLowerCase()?.split('+') || [];
           const shortcutKey = parts[parts.length - 1];
           const needsCtrl = parts.includes('ctrl') || parts.includes('cmd');
           const needsAlt = parts.includes('alt');

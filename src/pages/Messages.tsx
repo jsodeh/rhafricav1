@@ -53,7 +53,7 @@ const Messages = () => {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !activeConversation) return;
 
-    const [propertyId, agentId] = activeConversation.split('_');
+    const [propertyId, agentId] = activeConversation?.split('_') || [];
     const result = await sendMessage(newMessage, propertyId, agentId);
 
     if (result.success) {

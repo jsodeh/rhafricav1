@@ -113,7 +113,7 @@ const AgentDashboard = () => {
         bio: bio || null,
         years_experience: yearsExperience ? Number(yearsExperience) : null,
         specializations: specializations
-          ? specializations.split(',').map(s => s.trim()).filter(Boolean)
+          ? specializations?.split(',').map(s => s.trim()).filter(Boolean)
           : [],
         social_media: {
           instagram: instagram || null,

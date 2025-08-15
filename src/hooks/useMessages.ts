@@ -107,7 +107,7 @@ export const useMessages = () => {
     queryFn: async () => {
       if (!activeConversation || !user) return [];
 
-      const [propertyId, agentId] = activeConversation.split('_');
+      const [propertyId, agentId] = activeConversation?.split('_') || [];
 
       const { data, error } = await supabase
         .from('property_inquiries')
