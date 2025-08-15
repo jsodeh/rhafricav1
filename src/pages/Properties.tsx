@@ -26,7 +26,7 @@ const Properties = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(12);
   const [advancedFilters, setAdvancedFilters] = useState(null);
-  const [selectedProperty, setSelectedProperty] = useState<number | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
   const [showPropertyList, setShowPropertyList] = useState(true);
   const [searchParams] = useSearchParams();
 
@@ -57,7 +57,17 @@ const Properties = () => {
 
   // Transform properties data to include coordinates for map display
   const propertiesWithCoordinates = properties?.map((property, index) => ({
-    ...property,
+    id: Number(property.id),
+    title: property.title,
+    location: property.address || property.city || 'Unknown Location',
+    price: property.price?.toString() || '0',
+    bedrooms: property.bedrooms || 0,
+    bathrooms: property.bathrooms || 0,
+    area: property.area_sqm?.toString() || '0',
+    image: property.images?.[0] || '/placeholder.svg',
+    images: property.images || [],
+    type: property.property_type,
+    description: property.description || '',
     coordinates: {
       // Use real coordinates if available, otherwise fallback to city-based coordinates
       lat: property.latitude !== null && property.latitude !== undefined
@@ -78,7 +88,17 @@ const Properties = () => {
         property.city === 'Kano' ? 8.5920 + (Math.random() - 0.5) * 0.1 :
         3.3792 + (Math.random() - 0.5) * 0.1
         ),
-    }
+    },
+    agent: {
+      name: property.real_estate_agents?.agency_name || 'Unknown Agent',
+      phone: property.real_estate_agents?.phone || '',
+      email: '',
+      image: property.real_estate_agents?.profile_image_url || '/default-avatar.png'
+    },
+    daysOnMarket: 0,
+    pricePerSqft: '0',
+    city: property.city,
+    address: property.address
   })) || [];
 
   // Debug logging
@@ -90,7 +110,7 @@ const Properties = () => {
   });
 
   const selectedPropertyData = selectedProperty 
-    ? propertiesWithCoordinates.find(p => p.id === selectedProperty)
+    ? propertiesWithCoordinates.find(p => p.id.toString() === selectedProperty)
     : null;
 
   return (
@@ -267,7 +287,7 @@ const Properties = () => {
         <div className="flex-1 relative overflow-hidden">
           {viewMode === "map" ? (
             /* Zillow-style Map View */
-            <div className="flex h-full">
+            <div className="flex h-full min-h-0">
                {/* Property List Sidebar (wider to allow 2-column grid) */}
                {showPropertyList && (
                  <div className="w-[32rem] bg-white border-r shadow-lg overflow-hidden flex flex-col">
@@ -332,7 +352,7 @@ const Properties = () => {
                                      {property.area_sqm && (
                                        <div className="flex items-center gap-1">
                                          <Square className="h-3 w-3" />
-                                         <span>{property.area_sqm} sqm</span>
+                                         <span>{property.area_sqm}</span>
                                        </div>
                                      )}
                                    </div>
@@ -360,10 +380,10 @@ const Properties = () => {
               )}
 
               {/* Map Container */}
-              <div className="flex-1 relative">
+              <div className="flex-1 relative min-h-0">
                 <MapSearchIntegration
                   properties={propertiesWithCoordinates}
-                  onPropertySelect={setSelectedProperty}
+                  onPropertySelect={(propertyId: number) => setSelectedProperty(propertyId.toString())}
                   showSidebar={false}
                   height="100%"
                   className="w-full h-full"

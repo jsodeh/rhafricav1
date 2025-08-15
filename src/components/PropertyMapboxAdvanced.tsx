@@ -194,6 +194,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         // @ts-ignore
         const mapboxgl = window.mapboxgl;
         console.log('Setting Mapbox access token...');
+        // @ts-ignore
         mapboxgl.accessToken = MAPBOX_TOKEN;
         console.log('Mapbox access token set successfully');
 
@@ -208,6 +209,14 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
           antialias: true
         });
         console.log('Mapbox map created successfully');
+        console.log('Map container dimensions:', {
+          width: mapRef.current?.offsetWidth,
+          height: mapRef.current?.offsetHeight,
+          clientWidth: mapRef.current?.clientWidth,
+          clientHeight: mapRef.current?.clientHeight,
+          scrollWidth: mapRef.current?.scrollWidth,
+          scrollHeight: mapRef.current?.scrollHeight
+        });
 
         // Add enhanced controls
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
@@ -621,7 +630,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       className={`relative rounded-lg overflow-hidden ${className}`}
       style={{ height }}
     >
-      <div ref={mapRef} className="w-full h-full" />
+      <div ref={mapRef} className="w-full h-full border-2 border-red-500" />
 
       {/* Map Controls */}
       {showControls && (
