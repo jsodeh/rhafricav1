@@ -81,6 +81,14 @@ const Properties = () => {
     }
   })) || [];
 
+  // Debug logging
+  console.log('Properties debug:', {
+    originalProperties: properties,
+    propertiesWithCoordinates,
+    propertiesCount: propertiesWithCoordinates.length,
+    firstProperty: propertiesWithCoordinates[0]
+  });
+
   const selectedPropertyData = selectedProperty 
     ? propertiesWithCoordinates.find(p => p.id === selectedProperty)
     : null;

@@ -163,6 +163,14 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
 
   // Initialize map (once)
   useEffect(() => {
+    console.log('Mapbox token check:', { 
+      token: MAPBOX_TOKEN, 
+      tokenLength: MAPBOX_TOKEN?.length,
+      hasToken: !!MAPBOX_TOKEN,
+      tokenStart: MAPBOX_TOKEN?.substring(0, 20),
+      tokenEnd: MAPBOX_TOKEN?.substring(MAPBOX_TOKEN?.length - 20)
+    });
+    
     if (!MAPBOX_TOKEN) {
       console.warn('Mapbox access token not found. Please add VITE_MAPBOX_ACCESS_TOKEN to your environment variables.');
       return;
@@ -170,20 +178,26 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
 
     if (!mapRef.current || mapInstanceRef.current) return;
 
+    console.log('Starting map initialization...');
     const loadMapbox = async () => {
       try {
+        console.log('Loading Mapbox GL library...');
         // Lazy-load mapbox-gl safely
         // @ts-ignore
         if (typeof window !== 'undefined' && !window.mapboxgl) {
           const mod = await import('mapbox-gl');
           // @ts-ignore
           window.mapboxgl = mod.default || mod;
+          console.log('Mapbox GL library loaded successfully');
         }
 
         // @ts-ignore
         const mapboxgl = window.mapboxgl;
+        console.log('Setting Mapbox access token...');
         mapboxgl.accessToken = MAPBOX_TOKEN;
+        console.log('Mapbox access token set successfully');
 
+        console.log('Creating new Mapbox map...');
         const map = new mapboxgl.Map({
           container: mapRef.current!,
           style: `mapbox://styles/mapbox/${mapStyle}`,
@@ -193,6 +207,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
           bearing: 0,
           antialias: true
         });
+        console.log('Mapbox map created successfully');
 
         // Add enhanced controls
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
@@ -205,8 +220,10 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
           trackUserLocation: true,
           showUserHeading: true
         }), 'top-right');
+        console.log('Map controls added successfully');
 
         map.on('load', () => {
+          console.log('Map loaded successfully, adding property data...');
           setMapLoaded(true);
           addPropertyData(map);
           // When there are no properties, try to center on user location gracefully
@@ -223,6 +240,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         });
 
         mapInstanceRef.current = map;
+        console.log('Map initialization completed successfully');
 
         return () => {
           try {
