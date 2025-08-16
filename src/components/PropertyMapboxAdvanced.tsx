@@ -201,11 +201,31 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         console.log('Creating new Mapbox map...');
         const mapStyleUrl = `mapbox://styles/mapbox/${mapStyle}`;
         console.log('Using Mapbox style:', mapStyleUrl);
+        
+        // Calculate center based on properties if available
+        let center: [number, number] = [3.3792, 6.5244]; // Default Lagos center
+        let zoom = 11;
+        
+        if (properties && properties.length > 0) {
+          const validCoordinates = properties
+            .map(p => p.coordinates)
+            .filter(coord => coord && coord.lat && coord.lng);
+          
+          if (validCoordinates.length > 0) {
+            const lats = validCoordinates.map(c => c.lat);
+            const lngs = validCoordinates.map(c => c.lng);
+            const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+            const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+            center = [centerLng, centerLat];
+            console.log('Centering map on properties:', center);
+          }
+        }
+        
         const map = new mapboxgl.Map({
           container: mapRef.current!,
           style: mapStyleUrl,
-          center: [3.3792, 6.5244], // Lagos center
-          zoom: 11,
+          center: center,
+          zoom: zoom,
           pitch: viewMode === "3d" ? 45 : 0,
           bearing: 0,
           antialias: true
@@ -244,6 +264,34 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
           });
           setMapLoaded(true);
           addPropertyData(map);
+          
+          // Fit map bounds to properties after data is added
+          if (properties && properties.length > 0) {
+            setTimeout(() => {
+              try {
+                const validCoordinates = properties
+                  .map(p => p.coordinates)
+                  .filter(coord => coord && coord.lat && coord.lng);
+                
+                if (validCoordinates.length > 0) {
+                  const bounds = new mapboxgl.LngLatBounds();
+                  validCoordinates.forEach(coord => {
+                    bounds.extend([coord.lng, coord.lat]);
+                  });
+                  
+                  map.fitBounds(bounds, {
+                    padding: 50,
+                    duration: 1000,
+                    maxZoom: 15
+                  });
+                  console.log('Map bounds fitted to properties');
+                }
+              } catch (error) {
+                console.error('Error fitting bounds:', error);
+              }
+            }, 500);
+          }
+          
           // When there are no properties, try to center on user location gracefully
           if (!properties || properties.length === 0) {
             getUserLocation();
@@ -364,9 +412,9 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
             bedrooms: property.bedrooms,
             bathrooms: property.bathrooms,
             area: property.area,
-            location: property.location,
-            type: property.type,
             image: property.image,
+            type: property.type,
+            description: property.description,
             isSelected: selectedProperty === property.id
           },
           geometry: {
@@ -403,21 +451,70 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       console.log('Adding map layers...');
       
       try {
-        // Add property markers layer
+        // Add custom property markers layer
         if (!map.getLayer('property-markers')) {
-          map.addLayer({
-            id: 'property-markers',
-            type: 'circle',
-            source: 'properties',
-            filter: ['!', ['has', 'point_count']],
-            paint: {
-              'circle-radius': 8,
-              'circle-color': '#3B82F6',
-              'circle-stroke-width': 2,
-              'circle-stroke-color': '#FFFFFF'
+          // Add custom marker images
+          properties.forEach((property, index) => {
+            if (property.image && property.image !== '/placeholder.svg') {
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              img.onload = () => {
+                if (map.hasImage(`property-${property.id}`)) {
+                  map.removeImage(`property-${property.id}`);
+                }
+                map.addImage(`property-${property.id}`, img);
+              };
+              img.src = property.image;
             }
           });
-          console.log('Added property-markers layer');
+
+          map.addLayer({
+            id: 'property-markers',
+            type: 'symbol',
+            source: 'properties',
+            filter: ['!', ['has', 'point_count']],
+            layout: {
+              'icon-image': [
+                'case',
+                ['has', 'image'],
+                ['get', 'image'],
+                'marker' // fallback to default marker
+              ],
+              'icon-size': 0.8,
+              'icon-allow-overlap': true,
+              'icon-ignore-placement': true
+            },
+            paint: {}
+          });
+          console.log('Added custom property-markers layer');
+        }
+
+        // Add property labels layer
+        if (!map.getLayer('property-labels')) {
+          map.addLayer({
+            id: 'property-labels',
+            type: 'symbol',
+            source: 'properties',
+            filter: ['!', ['has', 'point_count']],
+            layout: {
+              'text-field': [
+                'format',
+                ['get', 'price'],
+                { 'font-scale': 0.8 }
+              ],
+              'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+              'text-size': 10,
+              'text-offset': [0, 2],
+              'text-anchor': 'top',
+              'text-allow-overlap': false
+            },
+            paint: {
+              'text-color': '#1a1a1a',
+              'text-halo-color': '#ffffff',
+              'text-halo-width': 1
+            }
+          });
+          console.log('Added property-labels layer');
         }
 
         // Add cluster layer
@@ -622,18 +719,62 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       onPropertySelect?.(properties.id);
     });
 
+    // Add hover functionality for property markers
+    let hoveredPropertyId: string | null = null;
+    
     // Change cursor on hover
-    map.on('mouseenter', 'clusters', () => {
+    map.on('mouseenter', 'property-markers', () => {
       map.getCanvas().style.cursor = 'pointer';
     });
-    map.on('mouseleave', 'clusters', () => {
+    
+    map.on('mouseleave', 'property-markers', () => {
       map.getCanvas().style.cursor = '';
     });
-    map.on('mouseenter', 'unclustered-point', () => {
-      map.getCanvas().style.cursor = 'pointer';
+    
+    // Show popup on hover
+    map.on('mouseenter', 'property-markers', (e) => {
+      if (e.features && e.features[0]) {
+        const feature = e.features[0];
+        const coordinates = feature.geometry.coordinates.slice();
+        const price = feature.properties.price;
+        const title = feature.properties.title;
+        const bedrooms = feature.properties.bedrooms;
+        const bathrooms = feature.properties.bathrooms;
+        
+        // Create popup content
+        const popupContent = `
+          <div class="p-3">
+            <h3 class="font-semibold text-sm mb-2">${title}</h3>
+            <div class="text-lg font-bold text-blue-700 mb-2">₦${price}</div>
+            <div class="flex items-center gap-2 text-xs text-gray-600">
+              ${bedrooms ? `<span>${bedrooms} beds</span>` : ''}
+              ${bathrooms ? `<span>${bathrooms} baths</span>` : ''}
+            </div>
+          </div>
+        `;
+        
+        // Create and show popup using the mapboxgl instance from window
+        // @ts-ignore
+        const mapboxgl = window.mapboxgl;
+        const popup = new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          className: 'property-popup'
+        })
+        .setLngLat(coordinates)
+        .setHTML(popupContent)
+        .addTo(map);
+        
+        // Store popup reference for cleanup
+        feature.properties.popup = popup;
+      }
     });
-    map.on('mouseleave', 'unclustered-point', () => {
-      map.getCanvas().style.cursor = '';
+    
+    // Hide popup on mouse leave
+    map.on('mouseleave', 'property-markers', (e) => {
+      if (e.features && e.features[0] && e.features[0].properties.popup) {
+        e.features[0].properties.popup.remove();
+      }
     });
   }, [onPropertySelect]);
 
@@ -732,6 +873,22 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       className={`relative rounded-lg overflow-hidden ${className}`}
       style={{ height }}
     >
+      <style>
+        {`
+          .property-popup .mapboxgl-popup-content {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e5e7eb;
+            padding: 0;
+            min-width: 200px;
+          }
+          .property-popup .mapboxgl-popup-tip {
+            border-top-color: white;
+          }
+        `}
+      </style>
+      
       <div 
         ref={mapRef} 
         className="w-full h-full" 

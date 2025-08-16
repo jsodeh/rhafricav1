@@ -292,7 +292,7 @@ const Properties = () => {
             <div className="flex h-full min-h-0">
                {/* Property List Sidebar (wider to allow 2-column grid) */}
                {showPropertyList && (
-                 <div className="w-[32rem] bg-white border-r shadow-lg overflow-hidden flex flex-col">
+                 <div className="w-[40rem] bg-white border-r shadow-lg overflow-hidden flex flex-col">
                   <div className="p-4 border-b bg-gray-50">
                     <h2 className="font-semibold text-gray-900">
                       {properties?.length || 0} Properties
@@ -305,7 +305,7 @@ const Properties = () => {
                         <div className="text-gray-600">Loading properties...</div>
                       </div>
                      ) : properties && properties.length > 0 ? (
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                       <div className="grid grid-cols-1 gap-4 p-4">
                          {properties.map((property) => (
                            <div
                              key={property.id}
@@ -315,18 +315,18 @@ const Properties = () => {
                              onClick={() => setSelectedProperty(property.id)}
                            >
                              <div className="p-4">
-                               <div className="flex gap-3">
+                               <div className="flex gap-4">
                                  <img
                                    src={property.images?.[0] || '/placeholder.svg'}
                                    alt={property.title}
-                                   className="w-20 h-16 object-cover rounded-lg flex-shrink-0"
+                                   className="w-24 h-20 object-cover rounded-lg flex-shrink-0"
                                  />
                                  <div className="flex-1 min-w-0">
                                    <div className="flex items-start justify-between mb-2">
-                                     <h3 className="font-semibold text-gray-900 text-sm line-clamp-2">
+                                     <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-tight">
                                        {property.title}
                                      </h3>
-                                     <div className="flex gap-1 ml-2">
+                                     <div className="flex gap-1 ml-2 flex-shrink-0">
                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                                          <Heart className="h-3 w-3" />
                                        </Button>
@@ -338,23 +338,23 @@ const Properties = () => {
                                    <div className="text-lg font-bold text-blue-700 mb-2">
                                      ₦{property.price?.toLocaleString()}
                                    </div>
-                                   <div className="flex items-center gap-3 text-xs text-gray-600 mb-2">
+                                   <div className="flex items-center gap-4 text-xs text-gray-600 mb-2">
                                      {property.bedrooms && (
                                        <div className="flex items-center gap-1">
                                          <Bed className="h-3 w-3" />
-                                         <span>{property.bedrooms}</span>
+                                         <span>{property.bedrooms} beds</span>
                                        </div>
                                      )}
                                      {property.bathrooms && (
                                        <div className="flex items-center gap-1">
                                          <Bath className="h-3 w-3" />
-                                         <span>{property.bathrooms}</span>
+                                         <span>{property.bathrooms} baths</span>
                                        </div>
                                      )}
                                      {property.area_sqm && (
                                        <div className="flex items-center gap-1">
                                          <Square className="h-3 w-3" />
-                                         <span>{property.area_sqm}</span>
+                                         <span>{property.area_sqm} sqm</span>
                                        </div>
                                      )}
                                    </div>
