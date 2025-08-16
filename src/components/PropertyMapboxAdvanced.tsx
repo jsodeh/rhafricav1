@@ -199,9 +199,11 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         console.log('Mapbox access token set successfully');
 
         console.log('Creating new Mapbox map...');
+        const mapStyleUrl = `mapbox://styles/mapbox/${mapStyle}`;
+        console.log('Using Mapbox style:', mapStyleUrl);
         const map = new mapboxgl.Map({
           container: mapRef.current!,
-          style: `mapbox://styles/mapbox/${mapStyle}`,
+          style: mapStyleUrl,
           center: [3.3792, 6.5244], // Lagos center
           zoom: 11,
           pitch: viewMode === "3d" ? 45 : 0,
@@ -242,6 +244,22 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
           setupMapInteractions(map);
         });
 
+        map.on('error', (e) => {
+          console.error('Mapbox map error:', e);
+        });
+
+        map.on('styleimagemissing', (e) => {
+          console.warn('Mapbox style image missing:', e);
+        });
+
+        map.on('styledata', () => {
+          console.log('Mapbox style data loaded');
+        });
+
+        map.on('sourcedata', (e) => {
+          console.log('Mapbox source data event:', e);
+        });
+
         map.on('moveend', () => {
           if (onBoundsChange) {
             onBoundsChange(map.getBounds());
@@ -250,6 +268,9 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
 
         mapInstanceRef.current = map;
         console.log('Map initialization completed successfully');
+        console.log('Map instance stored:', !!mapInstanceRef.current);
+        console.log('Map container ref:', !!mapRef.current);
+        console.log('Map container element:', mapRef.current);
 
         return () => {
           try {
@@ -630,7 +651,15 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       className={`relative rounded-lg overflow-hidden ${className}`}
       style={{ height }}
     >
-      <div ref={mapRef} className="w-full h-full border-2 border-red-500" />
+      <div 
+        ref={mapRef} 
+        className="w-full h-full border-2 border-red-500" 
+        style={{ 
+          minHeight: '400px',
+          position: 'relative',
+          zIndex: 1
+        }}
+      />
 
       {/* Map Controls */}
       {showControls && (
