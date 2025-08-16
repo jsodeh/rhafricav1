@@ -235,6 +235,13 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
 
         map.on('load', () => {
           console.log('Map loaded successfully, adding property data...');
+          console.log('Map canvas element:', map.getCanvas());
+          console.log('Map canvas dimensions:', {
+            width: map.getCanvas().width,
+            height: map.getCanvas().height,
+            styleWidth: map.getCanvas().style.width,
+            styleHeight: map.getCanvas().style.height
+          });
           setMapLoaded(true);
           addPropertyData(map);
           // When there are no properties, try to center on user location gracefully
@@ -242,6 +249,23 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
             getUserLocation();
           }
           setupMapInteractions(map);
+          
+          // Force a repaint to ensure the map is visible
+          setTimeout(() => {
+            console.log('Forcing map repaint...');
+            map.triggerRepaint();
+            console.log('Map repaint triggered');
+            
+            // Test: Add a simple marker to see if the map is working
+            try {
+              const marker = new mapboxgl.Marker({ color: 'red' })
+                .setLngLat([3.3792, 6.5244])
+                .addTo(map);
+              console.log('Test marker added successfully');
+            } catch (e) {
+              console.error('Failed to add test marker:', e);
+            }
+          }, 1000);
         });
 
         map.on('error', (e) => {
@@ -271,6 +295,22 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         console.log('Map instance stored:', !!mapInstanceRef.current);
         console.log('Map container ref:', !!mapRef.current);
         console.log('Map container element:', mapRef.current);
+        
+        // Check if map canvas is in the DOM
+        setTimeout(() => {
+          const canvas = mapRef.current?.querySelector('canvas');
+          console.log('Map canvas in DOM:', !!canvas);
+          if (canvas) {
+            console.log('Canvas element:', canvas);
+            console.log('Canvas computed styles:', {
+              display: window.getComputedStyle(canvas).display,
+              visibility: window.getComputedStyle(canvas).visibility,
+              opacity: window.getComputedStyle(canvas).opacity,
+              zIndex: window.getComputedStyle(canvas).zIndex,
+              position: window.getComputedStyle(canvas).position
+            });
+          }
+        }, 500);
 
         return () => {
           try {
@@ -657,7 +697,9 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         style={{ 
           minHeight: '400px',
           position: 'relative',
-          zIndex: 1
+          zIndex: 1,
+          backgroundColor: '#f0f0f0',
+          overflow: 'hidden'
         }}
       />
 
