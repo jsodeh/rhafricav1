@@ -24,6 +24,14 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+// Declare global propertyMarkers array
+declare global {
+  interface Window {
+    propertyMarkers: any[];
+    mapboxgl: any;
+  }
+}
+
 interface Property {
   id: number;
   title: string;
@@ -140,6 +148,12 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
 
   // Get user's current location
   const getUserLocation = useCallback(() => {
+    // Only get user location if there are no properties to center on
+    if (properties && properties.length > 0) {
+      console.log('Skipping user location - properties exist');
+      return;
+    }
+    
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -159,6 +173,16 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         }
       );
     }
+  }, [properties]);
+
+  // Cleanup markers on unmount
+  useEffect(() => {
+    return () => {
+      if (window.propertyMarkers) {
+        window.propertyMarkers.forEach(marker => marker.remove());
+        window.propertyMarkers = [];
+      }
+    };
   }, []);
 
   // Initialize map (once)
@@ -292,7 +316,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
             }, 500);
           }
           
-          // When there are no properties, try to center on user location gracefully
+          // Only center on user location if no properties exist
           if (!properties || properties.length === 0) {
             getUserLocation();
           }
@@ -450,110 +474,110 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       // Add layers
       console.log('Adding map layers...');
       
-      try {
-        // Add custom property markers layer
-        if (!map.getLayer('property-markers')) {
-          // Add custom marker images
-          properties.forEach((property, index) => {
-            if (property.image && property.image !== '/placeholder.svg') {
-              const img = new Image();
-              img.crossOrigin = 'anonymous';
-              img.onload = () => {
-                if (map.hasImage(`property-${property.id}`)) {
-                  map.removeImage(`property-${property.id}`);
-                }
-                map.addImage(`property-${property.id}`, img);
-              };
-              img.src = property.image;
-            }
+      // Remove existing markers if any
+      if (window.propertyMarkers) {
+        window.propertyMarkers.forEach(marker => marker.remove());
+      }
+      window.propertyMarkers = [];
+      
+      // Add custom HTML markers for each property
+      properties.forEach((property) => {
+        if (property.coordinates && property.coordinates.lat && property.coordinates.lng) {
+          // Create marker element
+          const markerEl = document.createElement('div');
+          markerEl.className = 'custom-property-marker';
+          
+          // Create image element
+          const img = document.createElement('img');
+          img.src = property.image && property.image !== '/placeholder.svg' ? property.image : '/placeholder.svg';
+          img.onerror = () => {
+            img.src = '/placeholder.svg';
+          };
+          
+          markerEl.appendChild(img);
+          
+          // Create popup content
+          const popupContent = `
+            <div class="p-3">
+              <h3 class="font-semibold text-sm mb-2">${property.title}</h3>
+              <div class="text-lg font-bold text-blue-700 mb-2">₦${property.price?.toLocaleString()}</div>
+              <div class="flex items-center gap-2 text-xs text-gray-600">
+                ${property.bedrooms ? `<span>${property.bedrooms} beds</span>` : ''}
+                ${property.bathrooms ? `<span>${property.bathrooms} baths</span>` : ''}
+              </div>
+            </div>
+          `;
+          
+          // Create popup
+          // @ts-ignore
+          const mapboxgl = window.mapboxgl;
+          const popup = new mapboxgl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            className: 'property-popup'
+          }).setHTML(popupContent);
+          
+          // Create marker
+          const marker = new mapboxgl.Marker(markerEl)
+            .setLngLat([property.coordinates.lng, property.coordinates.lat])
+            .setPopup(popup)
+            .addTo(map);
+          
+          // Add click handler
+          markerEl.addEventListener('click', () => {
+            onPropertySelect?.(property.id);
           });
-
-          map.addLayer({
-            id: 'property-markers',
-            type: 'symbol',
-            source: 'properties',
-            filter: ['!', ['has', 'point_count']],
-            layout: {
-              'icon-image': [
-                'case',
-                ['has', 'image'],
-                ['get', 'image'],
-                'marker' // fallback to default marker
-              ],
-              'icon-size': 0.8,
-              'icon-allow-overlap': true,
-              'icon-ignore-placement': true
-            },
-            paint: {}
+          
+          // Add hover effects
+          markerEl.addEventListener('mouseenter', () => {
+            popup.addTo(map);
           });
-          console.log('Added custom property-markers layer');
+          
+          markerEl.addEventListener('mouseleave', () => {
+            popup.remove();
+          });
+          
+          // Store marker reference
+          window.propertyMarkers.push(marker);
         }
+      });
+      
+      console.log(`Added ${window.propertyMarkers.length} custom property markers`);
+      
+      // Add cluster layer for clustering functionality
+      if (showClustering && !map.getLayer('clusters')) {
+        map.addLayer({
+          id: 'clusters',
+          type: 'circle',
+          source: 'properties',
+          filter: ['has', 'point_count'],
+          paint: {
+            'circle-radius': 20,
+            'circle-color': '#10B981',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#FFFFFF'
+          }
+        });
+        console.log('Added clusters layer');
+      }
 
-        // Add property labels layer
-        if (!map.getLayer('property-labels')) {
-          map.addLayer({
-            id: 'property-labels',
-            type: 'symbol',
-            source: 'properties',
-            filter: ['!', ['has', 'point_count']],
-            layout: {
-              'text-field': [
-                'format',
-                ['get', 'price'],
-                { 'font-scale': 0.8 }
-              ],
-              'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
-              'text-size': 10,
-              'text-offset': [0, 2],
-              'text-anchor': 'top',
-              'text-allow-overlap': false
-            },
-            paint: {
-              'text-color': '#1a1a1a',
-              'text-halo-color': '#ffffff',
-              'text-halo-width': 1
-            }
-          });
-          console.log('Added property-labels layer');
-        }
-
-        // Add cluster layer
-        if (showClustering && !map.getLayer('clusters')) {
-          map.addLayer({
-            id: 'clusters',
-            type: 'circle',
-            source: 'properties',
-            filter: ['has', 'point_count'],
-            paint: {
-              'circle-radius': 20,
-              'circle-color': '#10B981',
-              'circle-stroke-width': 2,
-              'circle-stroke-color': '#FFFFFF'
-            }
-          });
-          console.log('Added clusters layer');
-        }
-
-        // Add cluster count layer
-        if (showClustering && !map.getLayer('cluster-count')) {
-          map.addLayer({
-            id: 'cluster-count',
-            type: 'symbol',
-            source: 'properties',
-            filter: ['has', 'point_count'],
-            layout: {
-              'text-field': '{point_count_abbreviated}',
-              'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
-              'text-size': 12
-            },
-            paint: {
-              'text-color': '#FFFFFF'
-            }
-          });
-          console.log('Added cluster-count layer');
-        }
-      } catch (error) {
-        console.error('Error adding map layers:', error);
+      // Add cluster count layer
+      if (showClustering && !map.getLayer('cluster-count')) {
+        map.addLayer({
+          id: 'cluster-count',
+          type: 'symbol',
+          source: 'properties',
+          filter: ['has', 'point_count'],
+          layout: {
+            'text-field': '{point_count_abbreviated}',
+            'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+            'text-size': 12
+          },
+          paint: {
+            'text-color': '#FFFFFF'
+          }
+        });
+        console.log('Added cluster-count layer');
       }
 
       // Add heatmap layer
@@ -623,55 +647,6 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         }
       } else {
         if (map.getLayer('property-heatmap')) map.removeLayer('property-heatmap');
-      }
-
-      // Add unclustered points
-      if (!map.getLayer('unclustered-point')) {
-        map.addLayer({
-          id: 'unclustered-point',
-          type: 'circle',
-          source: 'properties',
-          filter: ['!', ['has', 'point_count']],
-          paint: {
-            'circle-color': [
-              'case',
-              ['get', 'isSelected'],
-              '#2563eb',
-              '#ef4444'
-            ],
-            'circle-radius': [
-              'case',
-              ['get', 'isSelected'],
-              12,
-              8
-            ],
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff'
-          }
-        });
-
-        map.addLayer({
-          id: 'property-labels',
-          type: 'symbol',
-          source: 'properties',
-          filter: ['!', ['has', 'point_count']],
-          layout: {
-            'text-field': [
-              'format',
-              ['get', 'price'],
-              { 'font-scale': 0.8 }
-            ],
-            'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
-            'text-size': 10,
-            'text-offset': [0, 2],
-            'text-anchor': 'top'
-          },
-          paint: {
-            'text-color': '#1a1a1a',
-            'text-halo-color': '#ffffff',
-            'text-halo-width': 1
-          }
-        });
       }
     } catch (error) {
       console.error('Error adding property data layers:', error);
@@ -869,37 +844,57 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
   }
 
   return (
-    <div 
-      className={`relative rounded-lg overflow-hidden ${className}`}
-      style={{ height }}
-    >
+    <div className={`relative ${className}`} style={{ height }}>
       <style>
         {`
+          .custom-property-marker {
+            transition: all 0.2s ease;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            overflow: hidden;
+            cursor: pointer;
+          }
+          .custom-property-marker:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            border-color: #3b82f6;
+          }
+          .custom-property-marker img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
           .property-popup .mapboxgl-popup-content {
-            background: white;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: none;
             padding: 0;
             min-width: 200px;
+          }
+          .property-popup .mapboxgl-popup-content h3 {
+            margin: 0;
+            color: #1f2937;
+            font-weight: 600;
+          }
+          .property-popup .mapboxgl-popup-content .text-blue-700 {
+            color: #1d4ed8;
+            font-weight: 700;
+          }
+          .property-popup .mapboxgl-popup-content .text-gray-600 {
+            color: #4b5563;
           }
           .property-popup .mapboxgl-popup-tip {
             border-top-color: white;
           }
+          .mapboxgl-popup-close-button {
+            display: none;
+          }
         `}
       </style>
-      
-      <div 
-        ref={mapRef} 
-        className="w-full h-full" 
-        style={{ 
-          minHeight: '400px',
-          position: 'relative',
-          zIndex: 1,
-          backgroundColor: '#f0f0f0',
-          overflow: 'hidden'
-        }}
-      />
+      <div ref={mapRef} className="w-full h-full rounded-lg" />
 
       {/* Map Controls */}
       {showControls && (

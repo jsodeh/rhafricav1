@@ -123,6 +123,21 @@ const Properties = () => {
       ogImage="/properties-hero.jpg"
     >
       <div className="h-screen flex flex-col bg-gray-50">
+        <style>
+          {`
+            .line-clamp-2 {
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              overflow: hidden;
+            }
+            .truncate {
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+          `}
+        </style>
         <StickyNavigation isScrolled={true} showSearchInNav={false} />
 
         {/* Top Search Bar */}
@@ -292,7 +307,7 @@ const Properties = () => {
             <div className="flex h-full min-h-0">
                {/* Property List Sidebar (wider to allow 2-column grid) */}
                {showPropertyList && (
-                 <div className="w-[40rem] bg-white border-r shadow-lg overflow-hidden flex flex-col">
+                 <div className="w-[36rem] bg-white border-r shadow-lg overflow-hidden flex flex-col">
                   <div className="p-4 border-b bg-gray-50">
                     <h2 className="font-semibold text-gray-900">
                       {properties?.length || 0} Properties
@@ -305,7 +320,7 @@ const Properties = () => {
                         <div className="text-gray-600">Loading properties...</div>
                       </div>
                      ) : properties && properties.length > 0 ? (
-                       <div className="grid grid-cols-1 gap-4 p-4">
+                       <div className="grid grid-cols-2 gap-3 p-3">
                          {properties.map((property) => (
                            <div
                              key={property.id}
@@ -314,53 +329,59 @@ const Properties = () => {
                              }`}
                              onClick={() => setSelectedProperty(property.id)}
                            >
-                             <div className="p-4">
-                               <div className="flex gap-4">
-                                 <img
-                                   src={property.images?.[0] || '/placeholder.svg'}
-                                   alt={property.title}
-                                   className="w-24 h-20 object-cover rounded-lg flex-shrink-0"
-                                 />
-                                 <div className="flex-1 min-w-0">
-                                   <div className="flex items-start justify-between mb-2">
-                                     <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-tight">
-                                       {property.title}
-                                     </h3>
-                                     <div className="flex gap-1 ml-2 flex-shrink-0">
-                                       <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                         <Heart className="h-3 w-3" />
-                                       </Button>
-                                       <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                         <Share2 className="h-3 w-3" />
-                                       </Button>
+                             <div className="h-full flex flex-col">
+                               <img
+                                 src={property.images?.[0] || '/placeholder.svg'}
+                                 alt={property.title}
+                                 className="w-full h-32 object-cover rounded-t-lg flex-shrink-0"
+                               />
+                               <div className="p-3 flex-1 flex flex-col">
+                                 <h3 className="font-semibold text-gray-900 text-xs leading-tight mb-2 line-clamp-2">
+                                   {property.title}
+                                 </h3>
+                                 <div className="text-sm font-bold text-blue-700 mb-2">
+                                   ₦{property.price?.toLocaleString()}
+                                 </div>
+                                 <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
+                                   {property.bedrooms && (
+                                     <div className="flex items-center gap-1">
+                                       <Bed className="h-3 w-3" />
+                                       <span className="truncate">{property.bedrooms}</span>
                                      </div>
+                                   )}
+                                   {property.bathrooms && (
+                                     <div className="flex items-center gap-1">
+                                       <Bath className="h-3 w-3" />
+                                       <span className="truncate">{property.bathrooms}</span>
+                                     </div>
+                                   )}
+                                   {property.area_sqm && (
+                                     <div className="flex items-center gap-1">
+                                       <Square className="h-3 w-3" />
+                                       <span className="truncate">{property.area_sqm}</span>
+                                     </div>
+                                   )}
+                                 </div>
+                                 <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
+                                   <MapPin className="h-3 w-3 flex-shrink-0" />
+                                   <span className="truncate text-xs">
+                                     {property.address && property.city 
+                                       ? `${property.address}, ${property.city}`
+                                       : property.city || 'Location not specified'
+                                     }
+                                   </span>
+                                 </div>
+                                 <div className="flex items-center justify-between mt-auto">
+                                   <div className="text-xs text-gray-500 truncate">
+                                     {property.real_estate_agents?.agency_name || 'Agent not specified'}
                                    </div>
-                                   <div className="text-lg font-bold text-blue-700 mb-2">
-                                     ₦{property.price?.toLocaleString()}
-                                   </div>
-                                   <div className="flex items-center gap-4 text-xs text-gray-600 mb-2">
-                                     {property.bedrooms && (
-                                       <div className="flex items-center gap-1">
-                                         <Bed className="h-3 w-3" />
-                                         <span>{property.bedrooms} beds</span>
-                                       </div>
-                                     )}
-                                     {property.bathrooms && (
-                                       <div className="flex items-center gap-1">
-                                         <Bath className="h-3 w-3" />
-                                         <span>{property.bathrooms} baths</span>
-                                       </div>
-                                     )}
-                                     {property.area_sqm && (
-                                       <div className="flex items-center gap-1">
-                                         <Square className="h-3 w-3" />
-                                         <span>{property.area_sqm} sqm</span>
-                                       </div>
-                                     )}
-                                   </div>
-                                   <div className="flex items-center gap-1 text-xs text-gray-600">
-                                     <MapPin className="h-3 w-3" />
-                                     <span className="truncate">{property.address}, {property.city}</span>
+                                   <div className="flex gap-1">
+                                     <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                                       <Heart className="h-3 w-3" />
+                                     </Button>
+                                     <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                                       <Share2 className="h-3 w-3" />
+                                     </Button>
                                    </div>
                                  </div>
                                </div>
