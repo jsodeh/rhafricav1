@@ -304,7 +304,7 @@ const Properties = () => {
         <div className="flex-1 relative overflow-hidden">
           {viewMode === "map" ? (
             /* Zillow-style Map View */
-            <div className="flex h-full min-h-0">
+            <div className="flex h-full">
                {/* Property List Sidebar (wider to allow 2-column grid) */}
                {showPropertyList && (
                  <div className="w-[36rem] bg-white border-r shadow-lg overflow-hidden flex flex-col">
@@ -403,7 +403,7 @@ const Properties = () => {
               )}
 
               {/* Map Container */}
-              <div className="flex-1 relative min-h-0">
+              <div className="flex-1 relative">
                 <MapSearchIntegration
                   properties={propertiesWithCoordinates}
                   onPropertySelect={(propertyId: number) => setSelectedProperty(propertyId.toString())}

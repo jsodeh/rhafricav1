@@ -261,8 +261,19 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
           clientWidth: mapRef.current?.clientWidth,
           clientHeight: mapRef.current?.clientHeight,
           scrollWidth: mapRef.current?.scrollWidth,
-          scrollHeight: mapRef.current?.scrollHeight
+          scrollHeight: mapRef.current?.scrollHeight,
+          styleHeight: mapRef.current?.style.height,
+          computedHeight: window.getComputedStyle(mapRef.current!).height
         });
+        
+        // Force a resize to ensure proper dimensions
+        setTimeout(() => {
+          map.resize();
+          console.log('Map resized, new dimensions:', {
+            width: map.getCanvas().width,
+            height: map.getCanvas().height
+          });
+        }, 100);
 
         // Add enhanced controls
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
@@ -408,7 +419,8 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       mapLoaded,
       propertiesCount: properties.length,
       firstProperty: properties[0],
-      firstPropertyCoordinates: properties[0]?.coordinates
+      firstPropertyCoordinates: properties[0]?.coordinates,
+      allProperties: properties
     });
     
     if (!map || !mapLoaded) {
@@ -416,10 +428,31 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       return;
     }
 
+    // Validate properties data
+    if (!properties || properties.length === 0) {
+      console.log('addPropertyData: no properties to display');
+      return;
+    }
+
+    // Check if properties have valid coordinates
+    const validProperties = properties.filter(p => p.coordinates && p.coordinates.lat && p.coordinates.lng);
+    console.log('addPropertyData: valid properties with coordinates:', {
+      total: properties.length,
+      valid: validProperties.length,
+      invalid: properties.length - validProperties.length,
+      sampleValid: validProperties[0],
+      sampleInvalid: properties.find(p => !p.coordinates || !p.coordinates.lat || !p.coordinates.lng)
+    });
+
+    if (validProperties.length === 0) {
+      console.log('addPropertyData: no properties with valid coordinates');
+      return;
+    }
+
     // Prepare GeoJSON data
     const geojsonData = {
       type: 'FeatureCollection',
-      features: properties.map((property, index) => {
+      features: validProperties.map((property, index) => {
         const position = getPropertyPosition(property, index);
         console.log(`Creating feature for property ${index}:`, {
           propertyId: property.id,
@@ -452,11 +485,12 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
     console.log('Adding GeoJSON source to map:', {
       sourceId: 'properties',
       data: geojsonData,
-      featureCount: geojsonData.features.length
+      featureCount: geojsonData.features.length,
+      sourceExists: !!map.getSource('properties')
     });
 
     try {
-      // Add or update the source
+      // Add or update the GeoJSON source (needed for map rendering and property counting)
       if (map.getSource('properties')) {
         map.getSource('properties').setData(geojsonData);
         console.log('Updated existing properties source');
@@ -470,7 +504,9 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         });
         console.log('Added new properties source');
       }
-
+      
+      console.log('Source added/updated successfully, source count:', map.getSource('properties') ? 'exists' : 'missing');
+      
       // Add layers
       console.log('Adding map layers...');
       
@@ -481,7 +517,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       window.propertyMarkers = [];
       
       // Add custom HTML markers for each property
-      properties.forEach((property) => {
+      validProperties.forEach((property) => {
         if (property.coordinates && property.coordinates.lat && property.coordinates.lng) {
           // Create marker element
           const markerEl = document.createElement('div');
@@ -647,6 +683,49 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         }
       } else {
         if (map.getLayer('property-heatmap')) map.removeLayer('property-heatmap');
+      }
+      
+      // Add unclustered points layer (needed for property counting and map interaction)
+      if (!map.getLayer('unclustered-point')) {
+        map.addLayer({
+          id: 'unclustered-point',
+          type: 'circle',
+          source: 'properties',
+          filter: ['!', ['has', 'point_count']],
+          paint: {
+            'circle-color': 'transparent', // Make invisible since we have HTML markers
+            'circle-radius': 0, // Make invisible since we have HTML markers
+            'circle-stroke-width': 0
+          }
+        });
+        console.log('Added invisible unclustered-point layer for property counting');
+        
+        // Add property labels layer (shows prices on map)
+        if (!map.getLayer('property-labels')) {
+          map.addLayer({
+            id: 'property-labels',
+            type: 'symbol',
+            source: 'properties',
+            filter: ['!', ['has', 'point_count']],
+            layout: {
+              'text-field': [
+                'format',
+                ['get', 'price'],
+                { 'font-scale': 0.8 }
+              ],
+              'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+              'text-size': 10,
+              'text-offset': [0, 2],
+              'text-anchor': 'top'
+            },
+            paint: {
+              'text-color': '#1a1a1a',
+              'text-halo-color': '#ffffff',
+              'text-halo-width': 1
+            }
+          });
+          console.log('Added property-labels layer for price display');
+        }
       }
     } catch (error) {
       console.error('Error adding property data layers:', error);
@@ -892,9 +971,18 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
           .mapboxgl-popup-close-button {
             display: none;
           }
+          /* Ensure map container has proper dimensions */
+          .mapboxgl-canvas-container {
+            width: 100% !important;
+            height: 100% !important;
+          }
+          .mapboxgl-canvas {
+            width: 100% !important;
+            height: 100% !important;
+          }
         `}
       </style>
-      <div ref={mapRef} className="w-full h-full rounded-lg" />
+      <div ref={mapRef} className="w-full h-full rounded-lg bg-red-200 border-2 border-red-500" />
 
       {/* Map Controls */}
       {showControls && (
