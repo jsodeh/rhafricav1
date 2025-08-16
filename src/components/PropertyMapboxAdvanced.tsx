@@ -331,13 +331,29 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
 
   // Add property data to map
   const addPropertyData = useCallback((map: any) => {
-    if (!map || !mapLoaded) return;
+    console.log('addPropertyData called with:', {
+      map: !!map,
+      mapLoaded,
+      propertiesCount: properties.length,
+      firstProperty: properties[0],
+      firstPropertyCoordinates: properties[0]?.coordinates
+    });
+    
+    if (!map || !mapLoaded) {
+      console.log('addPropertyData: map not ready or not loaded');
+      return;
+    }
 
     // Prepare GeoJSON data
     const geojsonData = {
       type: 'FeatureCollection',
       features: properties.map((property, index) => {
         const position = getPropertyPosition(property, index);
+        console.log(`Creating feature for property ${index}:`, {
+          propertyId: property.id,
+          position,
+          coordinates: property.coordinates
+        });
         return {
           type: 'Feature',
           properties: {
@@ -361,182 +377,207 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       })
     };
 
-    // Add property source
-    if (map.getSource('properties')) {
-      map.getSource('properties').setData(geojsonData);
-    } else {
-      map.addSource('properties', {
-        type: 'geojson',
-        data: geojsonData,
-        cluster: showClustering,
-        clusterMaxZoom: 14,
-        clusterRadius: 50
-      });
-    }
+    console.log('Adding GeoJSON source to map:', {
+      sourceId: 'properties',
+      data: geojsonData,
+      featureCount: geojsonData.features.length
+    });
 
-    // Add clusters layer
-    if (showClustering) {
-      if (!map.getLayer('clusters')) {
+    try {
+      // Add or update the source
+      if (map.getSource('properties')) {
+        map.getSource('properties').setData(geojsonData);
+        console.log('Updated existing properties source');
+      } else {
+        map.addSource('properties', {
+          type: 'geojson',
+          data: geojsonData,
+          cluster: showClustering,
+          clusterMaxZoom: 14,
+          clusterRadius: 50
+        });
+        console.log('Added new properties source');
+      }
+
+      // Add layers
+      console.log('Adding map layers...');
+      
+      try {
+        // Add property markers layer
+        if (!map.getLayer('property-markers')) {
+          map.addLayer({
+            id: 'property-markers',
+            type: 'circle',
+            source: 'properties',
+            filter: ['!', ['has', 'point_count']],
+            paint: {
+              'circle-radius': 8,
+              'circle-color': '#3B82F6',
+              'circle-stroke-width': 2,
+              'circle-stroke-color': '#FFFFFF'
+            }
+          });
+          console.log('Added property-markers layer');
+        }
+
+        // Add cluster layer
+        if (showClustering && !map.getLayer('clusters')) {
+          map.addLayer({
+            id: 'clusters',
+            type: 'circle',
+            source: 'properties',
+            filter: ['has', 'point_count'],
+            paint: {
+              'circle-radius': 20,
+              'circle-color': '#10B981',
+              'circle-stroke-width': 2,
+              'circle-stroke-color': '#FFFFFF'
+            }
+          });
+          console.log('Added clusters layer');
+        }
+
+        // Add cluster count layer
+        if (showClustering && !map.getLayer('cluster-count')) {
+          map.addLayer({
+            id: 'cluster-count',
+            type: 'symbol',
+            source: 'properties',
+            filter: ['has', 'point_count'],
+            layout: {
+              'text-field': '{point_count_abbreviated}',
+              'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+              'text-size': 12
+            },
+            paint: {
+              'text-color': '#FFFFFF'
+            }
+          });
+          console.log('Added cluster-count layer');
+        }
+      } catch (error) {
+        console.error('Error adding map layers:', error);
+      }
+
+      // Add heatmap layer
+      if (showHeatmapLayer) {
+        if (!map.getLayer('property-heatmap')) {
+          map.addLayer({
+            id: 'property-heatmap',
+            type: 'heatmap',
+            source: 'properties',
+            maxzoom: 15,
+            paint: {
+              'heatmap-weight': [
+                'interpolate',
+                ['linear'],
+                ['get', 'priceNumber'],
+                0,
+                0,
+                100000000,
+                1
+              ],
+              'heatmap-intensity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                1,
+                15,
+                3
+              ],
+              'heatmap-color': [
+                'interpolate',
+                ['linear'],
+                ['heatmap-density'],
+                0,
+                'rgba(33,102,172,0)',
+                0.2,
+                'rgb(103,169,207)',
+                0.4,
+                'rgb(209,229,240)',
+                0.6,
+                'rgb(253,219,199)',
+                0.8,
+                'rgb(239,138,98)',
+                1,
+                'rgb(178,24,43)'
+              ],
+              'heatmap-radius': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                2,
+                15,
+                20
+              ],
+              'heatmap-opacity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                7,
+                1,
+                15,
+                0
+              ]
+            }
+          }, 'waterway-label');
+        }
+      } else {
+        if (map.getLayer('property-heatmap')) map.removeLayer('property-heatmap');
+      }
+
+      // Add unclustered points
+      if (!map.getLayer('unclustered-point')) {
         map.addLayer({
-          id: 'clusters',
+          id: 'unclustered-point',
           type: 'circle',
           source: 'properties',
-          filter: ['has', 'point_count'],
+          filter: ['!', ['has', 'point_count']],
           paint: {
             'circle-color': [
-              'step',
-              ['get', 'point_count'],
-              '#51bbd6',
-              10,
-              '#f1f075',
-              20,
-              '#f28cb1'
+              'case',
+              ['get', 'isSelected'],
+              '#2563eb',
+              '#ef4444'
             ],
             'circle-radius': [
-              'step',
-              ['get', 'point_count'],
-              20,
-              10,
-              30,
-              20,
-              40
-            ]
+              'case',
+              ['get', 'isSelected'],
+              12,
+              8
+            ],
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff'
           }
         });
 
         map.addLayer({
-          id: 'cluster-count',
+          id: 'property-labels',
           type: 'symbol',
           source: 'properties',
-          filter: ['has', 'point_count'],
+          filter: ['!', ['has', 'point_count']],
           layout: {
-            'text-field': '{point_count_abbreviated}',
+            'text-field': [
+              'format',
+              ['get', 'price'],
+              { 'font-scale': 0.8 }
+            ],
             'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
-            'text-size': 12
+            'text-size': 10,
+            'text-offset': [0, 2],
+            'text-anchor': 'top'
+          },
+          paint: {
+            'text-color': '#1a1a1a',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 1
           }
         });
       }
-    } else {
-      if (map.getLayer('clusters')) map.removeLayer('clusters');
-      if (map.getLayer('cluster-count')) map.removeLayer('cluster-count');
-    }
-
-    // Add heatmap layer
-    if (showHeatmapLayer) {
-      if (!map.getLayer('property-heatmap')) {
-        map.addLayer({
-          id: 'property-heatmap',
-          type: 'heatmap',
-          source: 'properties',
-          maxzoom: 15,
-          paint: {
-            'heatmap-weight': [
-              'interpolate',
-              ['linear'],
-              ['get', 'priceNumber'],
-              0,
-              0,
-              100000000,
-              1
-            ],
-            'heatmap-intensity': [
-              'interpolate',
-              ['linear'],
-              ['zoom'],
-              0,
-              1,
-              15,
-              3
-            ],
-            'heatmap-color': [
-              'interpolate',
-              ['linear'],
-              ['heatmap-density'],
-              0,
-              'rgba(33,102,172,0)',
-              0.2,
-              'rgb(103,169,207)',
-              0.4,
-              'rgb(209,229,240)',
-              0.6,
-              'rgb(253,219,199)',
-              0.8,
-              'rgb(239,138,98)',
-              1,
-              'rgb(178,24,43)'
-            ],
-            'heatmap-radius': [
-              'interpolate',
-              ['linear'],
-              ['zoom'],
-              0,
-              2,
-              15,
-              20
-            ],
-            'heatmap-opacity': [
-              'interpolate',
-              ['linear'],
-              ['zoom'],
-              7,
-              1,
-              15,
-              0
-            ]
-          }
-        }, 'waterway-label');
-      }
-    } else {
-      if (map.getLayer('property-heatmap')) map.removeLayer('property-heatmap');
-    }
-
-    // Add unclustered points
-    if (!map.getLayer('unclustered-point')) {
-      map.addLayer({
-        id: 'unclustered-point',
-        type: 'circle',
-        source: 'properties',
-        filter: ['!', ['has', 'point_count']],
-        paint: {
-          'circle-color': [
-            'case',
-            ['get', 'isSelected'],
-            '#2563eb',
-            '#ef4444'
-          ],
-          'circle-radius': [
-            'case',
-            ['get', 'isSelected'],
-            12,
-            8
-          ],
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff'
-        }
-      });
-
-      map.addLayer({
-        id: 'property-labels',
-        type: 'symbol',
-        source: 'properties',
-        filter: ['!', ['has', 'point_count']],
-        layout: {
-          'text-field': [
-            'format',
-            ['get', 'price'],
-            { 'font-scale': 0.8 }
-          ],
-          'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
-          'text-size': 10,
-          'text-offset': [0, 2],
-          'text-anchor': 'top'
-        },
-        paint: {
-          'text-color': '#1a1a1a',
-          'text-halo-color': '#ffffff',
-          'text-halo-width': 1
-        }
-      });
+    } catch (error) {
+      console.error('Error adding property data layers:', error);
     }
   }, [properties, selectedProperty, showClustering, showHeatmapLayer, mapLoaded]);
 
@@ -693,7 +734,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
     >
       <div 
         ref={mapRef} 
-        className="w-full h-full border-2 border-red-500" 
+        className="w-full h-full" 
         style={{ 
           minHeight: '400px',
           position: 'relative',

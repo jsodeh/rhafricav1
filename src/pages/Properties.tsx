@@ -106,7 +106,9 @@ const Properties = () => {
     originalProperties: properties,
     propertiesWithCoordinates,
     propertiesCount: propertiesWithCoordinates.length,
-    firstProperty: propertiesWithCoordinates[0]
+    firstProperty: propertiesWithCoordinates[0],
+    firstPropertyCoordinates: propertiesWithCoordinates[0]?.coordinates,
+    firstPropertyId: propertiesWithCoordinates[0]?.id
   });
 
   const selectedPropertyData = selectedProperty 

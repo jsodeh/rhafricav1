@@ -64,6 +64,15 @@ const MapSearchIntegration: React.FC<MapSearchIntegrationProps> = ({
   showSidebar = true,
 }) => {
   const { searchQuery, filters } = useSearchContext();
+  
+  // Debug logging
+  console.log('MapSearchIntegration received properties:', {
+    count: properties.length,
+    firstProperty: properties[0],
+    firstPropertyCoordinates: properties[0]?.coordinates,
+    allProperties: properties
+  });
+  
   const [selectedProperty, setSelectedProperty] = useState<number | null>(null);
   const [mapBounds, setMapBounds] = useState<any>(null);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>(properties);
