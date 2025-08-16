@@ -91,6 +91,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
   const [showHeatmapLayer, setShowHeatmapLayer] = useState(showHeatmap);
   const [showClustering, setShowClustering] = useState(enableClustering);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [isAddingData, setIsAddingData] = useState(false); // Prevent multiple simultaneous calls
 
   // Get Mapbox access token from environment
   const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
@@ -289,15 +290,20 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         console.log('Map controls added successfully');
 
         map.on('load', () => {
-          console.log('Map loaded successfully, adding property data...');
-          console.log('Map canvas element:', map.getCanvas());
-          console.log('Map canvas dimensions:', {
+          console.log('✅ Map loaded successfully, adding property data...');
+          console.log('🗺️ Map canvas element:', map.getCanvas());
+          console.log('📏 Map canvas dimensions:', {
             width: map.getCanvas().width,
             height: map.getCanvas().height,
             styleWidth: map.getCanvas().style.width,
             styleHeight: map.getCanvas().style.height
           });
           setMapLoaded(true);
+          
+          // Store map instance reference
+          mapInstanceRef.current = map;
+          
+          // Add property data
           addPropertyData(map);
           
           // Fit map bounds to properties after data is added
@@ -319,10 +325,10 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
                     duration: 1000,
                     maxZoom: 15
                   });
-                  console.log('Map bounds fitted to properties');
+                  console.log('✅ Map bounds fitted to properties');
                 }
               } catch (error) {
-                console.error('Error fitting bounds:', error);
+                console.error('❌ Error fitting bounds:', error);
               }
             }, 500);
           }
@@ -331,24 +337,6 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
           if (!properties || properties.length === 0) {
             getUserLocation();
           }
-          setupMapInteractions(map);
-          
-          // Force a repaint to ensure the map is visible
-          setTimeout(() => {
-            console.log('Forcing map repaint...');
-            map.triggerRepaint();
-            console.log('Map repaint triggered');
-            
-            // Test: Add a simple marker to see if the map is working
-            try {
-              const marker = new mapboxgl.Marker({ color: 'red' })
-                .setLngLat([3.3792, 6.5244])
-                .addTo(map);
-              console.log('Test marker added successfully');
-            } catch (e) {
-              console.error('Failed to add test marker:', e);
-            }
-          }, 1000);
         });
 
         map.on('error', (e) => {
@@ -414,29 +402,39 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
 
   // Add property data to map
   const addPropertyData = useCallback((map: any) => {
-    console.log('addPropertyData called with:', {
+    // Prevent multiple simultaneous calls
+    if (isAddingData) {
+      console.log('🚫 addPropertyData: already in progress, skipping...');
+      return;
+    }
+    
+    setIsAddingData(true);
+    console.log('🔄 addPropertyData called with:', {
       map: !!map,
       mapLoaded,
       propertiesCount: properties.length,
       firstProperty: properties[0],
       firstPropertyCoordinates: properties[0]?.coordinates,
-      allProperties: properties
+      allProperties: properties,
+      timestamp: new Date().toISOString()
     });
     
     if (!map || !mapLoaded) {
-      console.log('addPropertyData: map not ready or not loaded');
+      console.log('❌ addPropertyData: map not ready or not loaded');
+      setIsAddingData(false);
       return;
     }
 
     // Validate properties data
     if (!properties || properties.length === 0) {
-      console.log('addPropertyData: no properties to display');
+      console.log('❌ addPropertyData: no properties to display');
+      setIsAddingData(false);
       return;
     }
 
     // Check if properties have valid coordinates
     const validProperties = properties.filter(p => p.coordinates && p.coordinates.lat && p.coordinates.lng);
-    console.log('addPropertyData: valid properties with coordinates:', {
+    console.log('✅ addPropertyData: valid properties with coordinates:', {
       total: properties.length,
       valid: validProperties.length,
       invalid: properties.length - validProperties.length,
@@ -445,8 +443,25 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
     });
 
     if (validProperties.length === 0) {
-      console.log('addPropertyData: no properties with valid coordinates');
+      console.log('❌ addPropertyData: no properties with valid coordinates');
+      setIsAddingData(false);
       return;
+    }
+
+    // Check if source already exists and has data
+    const existingSource = map.getSource('properties');
+    if (existingSource) {
+      console.log('🔍 Existing source found, checking data...');
+      try {
+        const currentData = existingSource.serialize();
+        console.log('📊 Current source data:', {
+          hasData: !!currentData,
+          dataType: currentData?.type,
+          featureCount: currentData?.data?.features?.length || 0
+        });
+      } catch (error) {
+        console.log('⚠️ Could not serialize existing source:', error);
+      }
     }
 
     // Prepare GeoJSON data
@@ -482,19 +497,22 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       })
     };
 
-    console.log('Adding GeoJSON source to map:', {
+    console.log('📊 Adding GeoJSON source to map:', {
       sourceId: 'properties',
       data: geojsonData,
       featureCount: geojsonData.features.length,
-      sourceExists: !!map.getSource('properties')
+      sourceExists: !!map.getSource('properties'),
+      timestamp: new Date().toISOString()
     });
 
     try {
       // Add or update the GeoJSON source (needed for map rendering and property counting)
       if (map.getSource('properties')) {
+        console.log('🔄 Updating existing properties source...');
         map.getSource('properties').setData(geojsonData);
-        console.log('Updated existing properties source');
+        console.log('✅ Updated existing properties source');
       } else {
+        console.log('🆕 Adding new properties source...');
         map.addSource('properties', {
           type: 'geojson',
           data: geojsonData,
@@ -502,10 +520,30 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
           clusterMaxZoom: 14,
           clusterRadius: 50
         });
-        console.log('Added new properties source');
+        console.log('✅ Added new properties source');
       }
       
-      console.log('Source added/updated successfully, source count:', map.getSource('properties') ? 'exists' : 'missing');
+      console.log('✅ Source added/updated successfully, source count:', map.getSource('properties') ? 'exists' : 'missing');
+      
+      // Verify source data after creation/update
+      setTimeout(() => {
+        const source = map.getSource('properties');
+        if (source) {
+          try {
+            const data = source.serialize();
+            console.log('🔍 Source verification after 100ms:', {
+              hasSource: !!source,
+              hasData: !!data,
+              featureCount: data?.data?.features?.length || 0,
+              timestamp: new Date().toISOString()
+            });
+          } catch (error) {
+            console.log('⚠️ Could not verify source data:', error);
+          }
+        } else {
+          console.log('❌ Source missing after creation!');
+        }
+      }, 100);
       
       // Add layers
       console.log('Adding map layers...');
@@ -698,39 +736,63 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
             'circle-stroke-width': 0
           }
         });
-        console.log('Added invisible unclustered-point layer for property counting');
-        
-        // Add property labels layer (shows prices on map)
-        if (!map.getLayer('property-labels')) {
-          map.addLayer({
-            id: 'property-labels',
-            type: 'symbol',
-            source: 'properties',
-            filter: ['!', ['has', 'point_count']],
-            layout: {
-              'text-field': [
-                'format',
-                ['get', 'price'],
-                { 'font-scale': 0.8 }
-              ],
-              'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
-              'text-size': 10,
-              'text-offset': [0, 2],
-              'text-anchor': 'top'
-            },
-            paint: {
-              'text-color': '#1a1a1a',
-              'text-halo-color': '#ffffff',
-              'text-halo-width': 1
-            }
-          });
-          console.log('Added property-labels layer for price display');
-        }
+        console.log('✅ Added invisible unclustered-point layer for property counting');
       }
+      
+      // Add property labels layer (shows prices on map)
+      if (!map.getLayer('property-labels')) {
+        map.addLayer({
+          id: 'property-labels',
+          type: 'symbol',
+          source: 'properties',
+          filter: ['!', ['has', 'point_count']],
+          layout: {
+            'text-field': [
+              'format',
+              ['get', 'price'],
+              { 'font-scale': 0.8 }
+            ],
+            'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+            'text-size': 10,
+            'text-offset': [0, 2],
+            'text-anchor': 'top'
+          },
+          paint: {
+            'text-color': '#1a1a1a',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 1
+          }
+        });
+        console.log('✅ Added property-labels layer for price display');
+      }
+      
+      // Final verification - check if source still has data
+      setTimeout(() => {
+        const finalSource = map.getSource('properties');
+        if (finalSource) {
+          try {
+            const finalData = finalSource.serialize();
+            console.log('🎯 Final source verification:', {
+              hasSource: !!finalSource,
+              hasData: !!finalData,
+              featureCount: finalData?.data?.features?.length || 0,
+              timestamp: new Date().toISOString()
+            });
+          } catch (error) {
+            console.log('⚠️ Could not verify final source data:', error);
+          }
+        } else {
+          console.log('❌ Source missing in final verification!');
+        }
+      }, 500);
     } catch (error) {
-      console.error('Error adding property data layers:', error);
+      console.error('❌ Error adding property data layers:', error);
+    } finally {
+      // Always reset the flag
+      setIsAddingData(false);
+      console.log('✅ addPropertyData completed, flag reset');
     }
-  }, [properties, selectedProperty, showClustering, showHeatmapLayer, mapLoaded]);
+  }, [properties, selectedProperty, showClustering, showHeatmapLayer, mapLoaded, isAddingData]);
 
   // Setup map interactions
   const setupMapInteractions = useCallback((map: any) => {
@@ -892,13 +954,36 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
     }
   };
 
-  // Update data and layers when inputs change
+  // Add property data when properties change
+  useEffect(() => {
+    console.log('🔄 useEffect triggered for addPropertyData:', {
+      propertiesCount: properties.length,
+      mapLoaded,
+      selectedProperty,
+      showClustering,
+      showHeatmapLayer,
+      timestamp: new Date().toISOString(),
+      propertiesArray: properties.map(p => ({ id: p.id, title: p.title, hasCoordinates: !!p.coordinates }))
+    });
+    
+    if (mapInstanceRef.current && mapLoaded) {
+      console.log('🚀 Calling addPropertyData...');
+      addPropertyData(mapInstanceRef.current);
+    } else {
+      console.log('⏳ Skipping addPropertyData - map not ready:', {
+        hasMapInstance: !!mapInstanceRef.current,
+        mapLoaded
+      });
+    }
+  }, [properties, selectedProperty, showClustering, showHeatmapLayer, mapLoaded, addPropertyData]);
+
+  // Setup map interactions when map is ready
   useEffect(() => {
     if (mapInstanceRef.current && mapLoaded) {
-      addPropertyData(mapInstanceRef.current);
+      console.log('🔧 Setting up map interactions...');
       setupMapInteractions(mapInstanceRef.current);
     }
-  }, [properties, selectedProperty, showClustering, showHeatmapLayer, addPropertyData, setupMapInteractions, mapLoaded]);
+  }, [mapLoaded, setupMapInteractions]);
 
   if (!MAPBOX_TOKEN) {
     return (
