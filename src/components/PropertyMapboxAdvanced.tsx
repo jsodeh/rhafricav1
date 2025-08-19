@@ -39,7 +39,6 @@ interface PropertyMapAdvancedProps {
   selectedProperty?: number | null;
   onPropertySelect?: (propertyId: number) => void;
   className?: string;
-  height?: string;
 }
 
 const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
@@ -47,7 +46,6 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
   selectedProperty,
   onPropertySelect,
   className = "",
-  height = "600px",
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -95,12 +93,17 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
 
         const resizeMap = () => {
           if (mapRef.current) {
-            map.resize();
+            const parent = mapRef.current.parentElement;
+            if (parent) {
+              const { height } = parent.getBoundingClientRect();
+              mapRef.current.style.height = `${height}px`;
+              map.resize();
+            }
           }
         };
 
         const resizeObserver = new ResizeObserver(resizeMap);
-        resizeObserver.observe(mapRef.current!);
+        resizeObserver.observe(mapRef.current.parentElement!);
 
         window.addEventListener('resize', resizeMap);
 
@@ -187,7 +190,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
 
   return (
     <div className={`relative rounded-lg overflow-hidden ${className}`}>
-      <div ref={mapRef} className="w-full h-full" style={{ width: '100%', height: '100%', minHeight: '400px' }} />
+      <div ref={mapRef} className="w-full h-full" style={{ width: '100%', height: '100%' }} />
       {selectedPopup && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
           {(() => {
