@@ -100,6 +100,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
 
         map.on('load', () => {
           setMapLoaded(true);
+          setTimeout(() => map.resize(), 0);
         });
 
         mapInstanceRef.current = map;
@@ -161,7 +162,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
 
   return (
     <div className={`relative rounded-lg overflow-hidden ${className}`}>
-      <div ref={mapRef} className="w-full h-full" style={{ height }} />
+      <div ref={mapRef} className="w-full h-full" style={{ height, minHeight: '400px' }} />
       {selectedPopup && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
           {(() => {
