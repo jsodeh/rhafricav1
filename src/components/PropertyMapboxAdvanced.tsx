@@ -25,10 +25,8 @@ import {
 import { Link } from "react-router-dom";
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-// Declare global propertyMarkers array
 declare global {
   interface Window {
-    propertyMarkers: any[];
     mapboxgl: any;
   }
 }
@@ -62,11 +60,6 @@ interface PropertyMapAdvancedProps {
   onPropertySelect?: (propertyId: number) => void;
   className?: string;
   height?: string;
-  showControls?: boolean;
-  showHeatmap?: boolean;
-  enableClustering?: boolean;
-  onBoundsChange?: (bounds: any) => void;
-  searchQuery?: string;
 }
 
 const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
@@ -75,18 +68,12 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
   onPropertySelect,
   className = "",
   height = "600px",
-  showControls = true,
-  showHeatmap = false,
-  enableClustering = true,
-  onBoundsChange,
-  searchQuery,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [selectedPopup, setSelectedPopup] = useState<number | null>(null);
-  const [mapStyle, setMapStyle] = useState("streets-v12");
 
   const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
@@ -116,18 +103,18 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
     const loadMapbox = async () => {
       try {
         const mapboxgl = (await import('mapbox-gl')).default;
+        window.mapboxgl = mapboxgl;
         mapboxgl.accessToken = MAPBOX_TOKEN;
 
         const map = new mapboxgl.Map({
           container: mapRef.current!,
-          style: `mapbox://styles/mapbox/${mapStyle}`,
+          style: 'mapbox://styles/mapbox/streets-v12',
           center: [3.3792, 6.5244],
           zoom: 11,
         });
 
         map.on('load', () => {
           setMapLoaded(true);
-          addMarkers(map);
         });
 
         mapInstanceRef.current = map;
@@ -141,9 +128,11 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
     };
 
     loadMapbox();
-  }, [MAPBOX_TOKEN, mapStyle]);
+  }, [MAPBOX_TOKEN]);
 
-  const addMarkers = (map: any) => {
+  const addMarkers = useCallback((map: any) => {
+    if (!window.mapboxgl) return;
+
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
@@ -177,13 +166,13 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
     });
 
     map.fitBounds(bounds, { padding: 50, maxZoom: 15 });
-  };
+  }, [properties, onPropertySelect]);
 
   useEffect(() => {
     if (mapLoaded && mapInstanceRef.current) {
       addMarkers(mapInstanceRef.current);
     }
-  }, [properties, mapLoaded]);
+  }, [properties, mapLoaded, addMarkers]);
 
   return (
     <div className={`relative rounded-lg overflow-hidden ${className}`}>
