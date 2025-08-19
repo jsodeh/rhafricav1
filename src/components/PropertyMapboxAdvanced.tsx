@@ -72,7 +72,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
     return lagosPositions[index % lagosPositions.length];
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!MAPBOX_TOKEN) {
       console.warn('Mapbox access token not found.');
       return;
@@ -93,19 +93,26 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
           zoom: 11,
         });
 
-        const resizeObserver = new ResizeObserver(() => {
-          map.resize();
-        });
+        const resizeMap = () => {
+          if (mapRef.current) {
+            map.resize();
+          }
+        };
+
+        const resizeObserver = new ResizeObserver(resizeMap);
         resizeObserver.observe(mapRef.current!);
+
+        window.addEventListener('resize', resizeMap);
 
         map.on('load', () => {
           setMapLoaded(true);
-          setTimeout(() => map.resize(), 0);
+          resizeMap();
         });
 
         mapInstanceRef.current = map;
 
         return () => {
+          window.removeEventListener('resize', resizeMap);
           resizeObserver.disconnect();
           map.remove();
         };
