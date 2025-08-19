@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useLayoutEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
@@ -132,11 +132,29 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       bounds.extend([position.lng, position.lat]);
 
       const el = document.createElement('div');
-      el.style.width = '100px';
-      el.style.height = '100px';
-      el.style.backgroundImage = `url(${property.image})`;
-      el.style.backgroundSize = 'cover';
-      el.style.cursor = 'pointer';
+      el.style.width = '40px';
+      el.style.height = '40px';
+
+      const pin = document.createElement('div');
+      pin.style.width = '100%';
+      pin.style.height = '100%';
+      pin.style.backgroundColor = 'white';
+      pin.style.borderRadius = '50% 50% 50% 0';
+      pin.style.transform = 'rotate(-45deg)';
+      pin.style.display = 'flex';
+      pin.style.justifyContent = 'center';
+      pin.style.alignItems = 'center';
+      pin.style.padding = '2px';
+
+      const imageContainer = document.createElement('div');
+      imageContainer.style.width = '100%';
+      imageContainer.style.height = '100%';
+      imageContainer.style.backgroundImage = `url(${property.image})`;
+      imageContainer.style.backgroundSize = 'cover';
+      imageContainer.style.borderRadius = '50%';
+
+      pin.appendChild(imageContainer);
+      el.appendChild(pin);
 
       el.addEventListener('click', () => {
         setSelectedPopup(property.id);
@@ -162,7 +180,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
 
   return (
     <div className={`relative rounded-lg overflow-hidden ${className}`}>
-      <div ref={mapRef} className="w-full h-full" style={{ height, minHeight: '400px' }} />
+      <div ref={mapRef} className="w-full h-full" style={{ width: '100%', height: '100%', minHeight: '400px' }} />
       {selectedPopup && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
           {(() => {
