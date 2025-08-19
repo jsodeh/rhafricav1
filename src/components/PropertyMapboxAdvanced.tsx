@@ -1,27 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import {
-  MapPin,
-  Heart,
-  Bed,
-  Bath,
-  X,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
-  Maximize,
-  Layers,
-  Navigation,
-  Crosshair,
-  Search,
-  Home,
-  Filter,
-} from "lucide-react";
+import { X } from "lucide-react";
 import { Link } from "react-router-dom";
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -113,6 +93,11 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
           zoom: 11,
         });
 
+        const resizeObserver = new ResizeObserver(() => {
+          map.resize();
+        });
+        resizeObserver.observe(mapRef.current!);
+
         map.on('load', () => {
           setMapLoaded(true);
         });
@@ -120,6 +105,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         mapInstanceRef.current = map;
 
         return () => {
+          resizeObserver.disconnect();
           map.remove();
         };
       } catch (error) {
@@ -145,11 +131,10 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       bounds.extend([position.lng, position.lat]);
 
       const el = document.createElement('div');
-      el.style.width = '10px';
-      el.style.height = '10px';
+      el.style.width = '100px';
+      el.style.height = '100px';
       el.style.backgroundImage = `url(${property.image})`;
       el.style.backgroundSize = 'cover';
-      el.style.borderRadius = '50%';
       el.style.cursor = 'pointer';
 
       el.addEventListener('click', () => {
