@@ -92,6 +92,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       try {
         const mapboxgl = (await import('mapbox-gl')).default;
         window.mapboxgl = mapboxgl;
+        console.log('MAPBOX_TOKEN being used:', MAPBOX_TOKEN);
         mapboxgl.accessToken = MAPBOX_TOKEN;
 
         const map = new mapboxgl.Map({
