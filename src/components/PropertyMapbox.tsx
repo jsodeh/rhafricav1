@@ -14,6 +14,7 @@ import {
   Maximize,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface Property {
   id: number;
@@ -137,47 +138,29 @@ const PropertyMapbox: React.FC<PropertyMapProps> = ({
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
+    if (properties.length === 0) return;
+
+    // @ts-ignore
+    const bounds = new window.mapboxgl.LngLatBounds();
+
     properties.forEach((property, index) => {
       const position = getPropertyPosition(property, index);
-      const isSelected = selectedProperty === property.id;
+      bounds.extend([position.lng, position.lat]);
 
       // Create marker element
       const el = document.createElement('div');
       el.className = 'mapbox-marker';
       el.style.cssText = `
-        width: 40px;
-        height: 40px;
+        width: 10px;
+        height: 10px;
         border-radius: 50%;
-        background-color: ${isSelected ? '#2563eb' : '#ef4444'};
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: bold;
+        background-image: url(${property.image});
+        background-size: cover;
+        background-position: center;
         cursor: pointer;
-        border: 2px solid white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        transition: transform 0.2s;
+        border: 1px solid white;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
       `;
-
-      const price = (() => {
-        const raw = typeof property.price === 'number' ? String(property.price) : String(property.price || '');
-        return raw
-          .replace("₦", "")
-          .replace(",000,000", "M")
-          .replace(",000", "K");
-      })();
-      
-      el.textContent = price;
-
-      el.addEventListener('mouseenter', () => {
-        el.style.transform = 'scale(1.1)';
-      });
-
-      el.addEventListener('mouseleave', () => {
-        el.style.transform = 'scale(1)';
-      });
 
       el.addEventListener('click', () => {
         map.flyTo({
@@ -195,6 +178,8 @@ const PropertyMapbox: React.FC<PropertyMapProps> = ({
 
       markersRef.current.push(marker);
     });
+
+    map.fitBounds(bounds, { padding: 50, maxZoom: 15 });
   };
 
   const formatPrice = (price: any) => {
