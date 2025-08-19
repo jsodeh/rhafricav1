@@ -76,7 +76,17 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
       return;
     }
 
-    if (!mapRef.current || mapInstanceRef.current) return;
+    if (!mapRef.current) {
+      console.log('Map ref not ready');
+      return;
+    }
+
+    if (mapInstanceRef.current) {
+      console.log('Map already initialized');
+      return;
+    }
+
+    console.log('Initializing map...');
 
     const loadMapbox = async () => {
       try {
@@ -102,12 +112,15 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
           }
         };
 
-        const resizeObserver = new ResizeObserver(resizeMap);
-        resizeObserver.observe(mapRef.current.parentElement!);
+        if (mapRef.current.parentElement) {
+          const resizeObserver = new ResizeObserver(resizeMap);
+          resizeObserver.observe(mapRef.current.parentElement);
+        }
 
         window.addEventListener('resize', resizeMap);
 
         map.on('load', () => {
+          console.log('Map loaded');
           setMapLoaded(true);
           resizeMap();
         });
@@ -116,7 +129,11 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
 
         return () => {
           window.removeEventListener('resize', resizeMap);
-          resizeObserver.disconnect();
+          if (mapRef.current && mapRef.current.parentElement) {
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            const resizeObserver = new ResizeObserver(resizeMap);
+            resizeObserver.unobserve(mapRef.current.parentElement);
+          }
           map.remove();
         };
       } catch (error) {
