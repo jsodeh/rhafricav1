@@ -98,17 +98,19 @@ const Properties = () => {
     daysOnMarket: 0,
     pricePerSqft: '0',
     city: property.city,
-    address: property.address
+    address: property.address,
   })) || [];
 
   // Debug logging
   console.log('Properties debug:', {
     originalProperties: properties,
     propertiesWithCoordinates,
-    propertiesCount: propertiesWithCoordinates.length,
-    firstProperty: propertiesWithCoordinates[0],
-    firstPropertyCoordinates: propertiesWithCoordinates[0]?.coordinates,
-    firstPropertyId: propertiesWithCoordinates[0]?.id
+    propertiesCount: properties?.length || 0,
+    firstProperty: properties?.[0],
+    firstPropertyCoordinates: propertiesWithCoordinates?.[0]?.coordinates,
+    hasLatitude: properties?.[0]?.latitude,
+    hasLongitude: properties?.[0]?.longitude,
+    city: properties?.[0]?.city
   });
 
   const selectedPropertyData = selectedProperty 

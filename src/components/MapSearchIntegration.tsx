@@ -91,6 +91,12 @@ const MapSearchIntegration: React.FC<MapSearchIntegrationProps> = ({
     popularAreas: [] as string[],
   });
 
+  // Update filteredProperties when properties change
+  useEffect(() => {
+    setFilteredProperties(properties);
+    calculateMapStats(properties);
+  }, [properties, calculateMapStats]);
+
   // Calculate map statistics
   const calculateMapStats = useCallback((props: Property[]) => {
     if (props.length === 0) {
@@ -235,11 +241,6 @@ const MapSearchIntegration: React.FC<MapSearchIntegrationProps> = ({
             properties={filteredProperties}
             selectedProperty={selectedProperty}
             onPropertySelect={handlePropertySelect}
-            onBoundsChange={handleBoundsChange}
-            searchQuery={searchQuery}
-            showHeatmap={mapSettings.showHeatmap}
-            enableClustering={mapSettings.showClustering}
-            height={isFullscreen ? "100vh" : height}
             className="w-full"
           />
 

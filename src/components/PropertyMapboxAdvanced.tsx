@@ -93,6 +93,8 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
         const mapboxgl = (await import('mapbox-gl')).default;
         window.mapboxgl = mapboxgl;
         console.log('MAPBOX_TOKEN being used:', MAPBOX_TOKEN);
+        console.log('Mapboxgl imported:', !!mapboxgl);
+        console.log('window.mapboxgl set:', !!window.mapboxgl);
         mapboxgl.accessToken = MAPBOX_TOKEN;
 
         const map = new mapboxgl.Map({
@@ -148,15 +150,28 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
   const addMarkers = useCallback((map: any) => {
     if (!window.mapboxgl) return;
 
+    console.log('Adding markers for properties:', properties);
+    console.log('Properties length:', properties.length);
+
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
-    if (properties.length === 0) return;
+    if (properties.length === 0) {
+      console.log('No properties to add markers for');
+      return;
+    }
 
     const bounds = new window.mapboxgl.LngLatBounds();
 
     properties.forEach((property, index) => {
       const position = getPropertyPosition(property, index);
+      console.log(`Property ${index}:`, {
+        id: property.id,
+        title: property.title,
+        coordinates: property.coordinates,
+        calculatedPosition: position
+      });
+      
       bounds.extend([position.lng, position.lat]);
 
       const el = document.createElement('div');
@@ -201,8 +216,21 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
   }, [properties, onPropertySelect]);
 
   useEffect(() => {
+    console.log('useEffect triggered:', {
+      mapLoaded,
+      hasMapInstance: !!mapInstanceRef.current,
+      propertiesLength: properties.length,
+      properties: properties
+    });
+    
     if (mapLoaded && mapInstanceRef.current) {
+      console.log('Calling addMarkers...');
       addMarkers(mapInstanceRef.current);
+    } else {
+      console.log('Not calling addMarkers:', {
+        mapLoaded,
+        hasMapInstance: !!mapInstanceRef.current
+      });
     }
   }, [properties, mapLoaded, addMarkers]);
 
