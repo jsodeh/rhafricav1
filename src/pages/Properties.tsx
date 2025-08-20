@@ -404,12 +404,21 @@ const Properties = () => {
 
               {/* Map Container */}
               <div className="flex-1 relative flex-grow">
+                {/* Original MapSearchIntegration component - commented out for now */}
+                {/*
                 <MapSearchIntegration
                   properties={propertiesWithCoordinates}
                   onPropertySelect={(propertyId: number) => setSelectedProperty(propertyId.toString())}
                   showSidebar={false}
                   height="100%"
                   className="w-full h-full"
+                />
+                */}
+                <img
+                  src="/placeholder.svg"
+                  alt="Placeholder Image"
+                  className="w-full h-full object-cover"
+                  style={{ backgroundColor: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', color: '#ccc' }}
                 />
               </div>
             </div>
