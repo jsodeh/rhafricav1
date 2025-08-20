@@ -259,18 +259,24 @@ const Agents = () => {
                         </Button>
                       </Link>
                       <Button
+                        asChild
                         variant="outline"
                         size="icon"
                         className="flex-shrink-0"
                       >
-                        <Phone className="h-4 w-4" />
+                        <a href={`tel:${agent.phone || ''}`} aria-label="Call agent">
+                          <Phone className="h-4 w-4" />
+                        </a>
                       </Button>
                       <Button
+                        asChild
                         variant="outline"
                         size="icon"
                         className="flex-shrink-0"
                       >
-                        <Mail className="h-4 w-4" />
+                        <a href={`mailto:${agent.email || ''}`} aria-label="Email agent">
+                          <Mail className="h-4 w-4" />
+                        </a>
                       </Button>
                     </div>
                   </div>

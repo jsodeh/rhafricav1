@@ -613,14 +613,18 @@ const PropertyDetail = () => {
                         </Button>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <Button variant="outline" size="sm">
-                          <Phone className="h-4 w-4 mr-1" />
-                          Call
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Mail className="h-4 w-4 mr-1" />
-                          Email
-                        </Button>
+                        <a href={`tel:${agent.phone || ''}`} className="w-full">
+                          <Button variant="outline" size="sm" className="w-full">
+                            <Phone className="h-4 w-4 mr-1" />
+                            Call
+                          </Button>
+                        </a>
+                        <a href={`mailto:${agent.email || ''}`} className="w-full">
+                          <Button variant="outline" size="sm" className="w-full">
+                            <Mail className="h-4 w-4 mr-1" />
+                            Email
+                          </Button>
+                        </a>
                       </div>
                     </CardContent>
                   </Card>

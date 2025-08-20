@@ -226,13 +226,17 @@ const Messages = () => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm">
-                        <Phone className="h-4 w-4 mr-2" />
-                        Call
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={`tel:${activeConv.agent?.phone || ''}`}>
+                          <Phone className="h-4 w-4 mr-2" />
+                          Call
+                        </a>
                       </Button>
-                      <Button variant="outline" size="sm">
-                        <Mail className="h-4 w-4 mr-2" />
-                        Email
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={`mailto:${(user?.email || '')}`}> 
+                          <Mail className="h-4 w-4 mr-2" />
+                          Email
+                        </a>
                       </Button>
                     </div>
                   </div>
