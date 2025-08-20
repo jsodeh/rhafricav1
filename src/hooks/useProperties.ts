@@ -38,7 +38,7 @@ export const useProperties = (filters?: PropertyFilters) => {
     setRetryCount(0);
     fetchProperties();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(filters)]);
+  }, [filters?.city, filters?.state, filters?.property_type, filters?.listing_type, filters?.status, filters?.min_price, filters?.max_price, filters?.bedrooms, filters?.bathrooms, filters?.featured, filters?.search]);
 
   const fetchProperties = async () => {
     const controller = new AbortController();

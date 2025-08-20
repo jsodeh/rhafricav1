@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Heart, Share2, Bath, Bed, Square } from "lucide-react";
-import { Property } from "@/hooks/useProperties";
+import type { Property } from "@/types/database";
 
 interface CompactPropertyCardProps {
   property: Property;

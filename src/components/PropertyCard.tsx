@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Heart, Share2, Bath, Bed, Square, Calendar, Shield } from "lucide-react";
-import { Property } from "@/hooks/useProperties";
+import type { Property } from "@/types/database";
 
 interface PropertyCardProps {
   property: Property;

@@ -17,7 +17,7 @@ import { pageConfigs } from "@/lib/seo";
 const Properties = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [propertyType, setPropertyType] = useState("all");
-  const [listingStatus, setListingStatus] = useState<string | undefined>(undefined); // 'for_sale' | 'for_rent'
+  const [listingStatus, setListingStatus] = useState<string | undefined>(undefined);
   const [priceRange, setPriceRange] = useState("all");
   const [location, setLocation] = useState("all");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -30,7 +30,7 @@ const Properties = () => {
   const [showPropertyList, setShowPropertyList] = useState(true);
   const [searchParams] = useSearchParams();
 
-  // Set sale/rent from query param and map to status; also keep legacy type filter for property type
+  // Set sale/rent from query param and map to status
   useEffect(() => {
     const typeParam = searchParams.get("type");
     if (typeParam) {
@@ -51,11 +51,10 @@ const Properties = () => {
   });
 
   const handleSearch = () => {
-    // The search will automatically trigger due to the useProperties hook watching the state
     console.log('Search triggered with:', { searchTerm, propertyType, priceRange, location });
   };
 
-  // Transform properties data to include coordinates for map display
+  // Simplified properties transformation
   const propertiesWithCoordinates = properties?.map((property, index) => ({
     id: Number(property.id),
     title: property.title,
@@ -69,25 +68,8 @@ const Properties = () => {
     type: property.property_type,
     description: property.description || '',
     coordinates: {
-      // Use real coordinates if available, otherwise fallback to city-based coordinates
-      lat: property.latitude !== null && property.latitude !== undefined
-        ? Number(property.latitude as any)
-        : (
-        property.city === 'Lagos' ? 6.5244 + (Math.random() - 0.5) * 0.1 :
-        property.city === 'Abuja' ? 9.0579 + (Math.random() - 0.5) * 0.1 :
-        property.city === 'Port Harcourt' ? 4.8156 + (Math.random() - 0.5) * 0.1 :
-        property.city === 'Kano' ? 12.0022 + (Math.random() - 0.5) * 0.1 :
-        6.5244 + (Math.random() - 0.5) * 0.1
-        ),
-      lng: property.longitude !== null && property.longitude !== undefined
-        ? Number(property.longitude as any)
-        : (
-        property.city === 'Lagos' ? 3.3792 + (Math.random() - 0.5) * 0.1 :
-        property.city === 'Abuja' ? 7.4951 + (Math.random() - 0.5) * 0.1 :
-        property.city === 'Port Harcourt' ? 7.0498 + (Math.random() - 0.5) * 0.1 :
-        property.city === 'Kano' ? 8.5920 + (Math.random() - 0.5) * 0.1 :
-        3.3792 + (Math.random() - 0.5) * 0.1
-        ),
+      lat: property.latitude || 6.5244 + (index * 0.01),
+      lng: property.longitude || 3.3792 + (index * 0.01),
     },
     agent: {
       name: property.real_estate_agents?.agency_name || 'Unknown Agent',
