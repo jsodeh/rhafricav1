@@ -48,7 +48,7 @@ const Properties = () => {
     min_price: priceRange === "all" ? undefined : undefined,
     city: location === "all" ? undefined : location,
     status: listingStatus as any,
-  } as any);
+  });
 
   const handleSearch = () => {
     // The search will automatically trigger due to the useProperties hook watching the state
