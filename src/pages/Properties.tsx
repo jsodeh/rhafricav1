@@ -408,7 +408,7 @@ const Properties = () => {
                   properties={propertiesWithCoordinates}
                   onPropertySelect={(propertyId: number) => setSelectedProperty(propertyId.toString())}
                   showSidebar={false}
-                  height="100%"
+                  height="300px"
                   className="w-full h-full"
                 />
               </div>
