@@ -288,11 +288,11 @@ const Properties = () => {
         <div className="flex-1 relative overflow-hidden">
           {viewMode === "map" ? (
             /* Zillow-style Map View */
-            <div className="flex">
+            <div className="flex h-full">
                {/* Property List Sidebar (wider to allow 2-column grid) */}
                {showPropertyList && (
                  <div className="w-[36rem] bg-white border-r shadow-lg overflow-hidden flex flex-col">
-                  <div className="p-4 border-b bg-gray-50">
+                  <div className="p-4 border-b bg-gray-50 flex-shrink-0">
                     <h2 className="font-semibold text-gray-900">
                       {properties?.length || 0} Properties
                     </h2>
@@ -392,7 +392,7 @@ const Properties = () => {
                   properties={propertiesWithCoordinates}
                   onPropertySelect={(propertyId: number) => setSelectedProperty(propertyId.toString())}
                   showSidebar={false}
-                  height="300px"
+                  height="100%"
                   className="w-full h-full"
                 />
               </div>

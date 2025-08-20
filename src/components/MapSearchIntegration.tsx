@@ -233,18 +233,18 @@ const MapSearchIntegration: React.FC<MapSearchIntegrationProps> = ({
   }, [properties, mapBounds, filterPropertiesByBounds, calculateMapStats]);
 
   return (
-    <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white' : 'relative'} ${className}`}>
-      <div className={`flex ${isFullscreen ? 'h-screen' : ''}`}>
+    <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white' : 'relative'} ${className}`} style={{ height: isFullscreen ? '100vh' : height }}>
+      <div className={`flex ${isFullscreen ? 'h-screen' : 'h-full'}`}>
         {/* Map Container */}
         <div
           className={`${showSidebar && !isFullscreen ? 'flex-1' : 'w-full'} relative`}
-          style={{ height: isFullscreen ? '100vh' : height }}
+          style={{ height: '100%' }}
         >
           <PropertyMapboxAdvanced
             properties={filteredProperties}
             selectedProperty={selectedProperty}
             onPropertySelect={handlePropertySelect}
-            className="w-full"
+            className="w-full h-full"
           />
 
           {/* Fullscreen Toggle */}

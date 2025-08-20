@@ -235,7 +235,7 @@ const PropertyMapboxAdvanced: React.FC<PropertyMapAdvancedProps> = ({
   }, [properties, mapLoaded, addMarkers]);
 
   return (
-    <div className={`relative rounded-lg overflow-hidden ${className}`} style={{ minHeight: '300px' }}>
+    <div className={`relative rounded-lg overflow-hidden ${className}`}>
       <div ref={mapRef} className="w-full h-full" style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 0 }} />
       {selectedPopup && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
