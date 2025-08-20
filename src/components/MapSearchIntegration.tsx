@@ -236,7 +236,10 @@ const MapSearchIntegration: React.FC<MapSearchIntegrationProps> = ({
     <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white' : 'relative'} ${className}`}>
       <div className={`flex ${isFullscreen ? 'h-screen' : ''}`}>
         {/* Map Container */}
-        <div className={`${showSidebar && !isFullscreen ? 'flex-1' : 'w-full'} relative`}>
+        <div
+          className={`${showSidebar && !isFullscreen ? 'flex-1' : 'w-full'} relative`}
+          style={{ height: isFullscreen ? '100vh' : height }}
+        >
           <PropertyMapboxAdvanced
             properties={filteredProperties}
             selectedProperty={selectedProperty}
